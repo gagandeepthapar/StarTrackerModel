@@ -8,9 +8,14 @@ startrackermodel
 """
 
 from abc import ABC, abstractmethod
+from typing import Dict
 import numpy as np
 import logging
+import logging.config
 
+from data import CONSTANTS
+
+logging.config.dictConfig(CONSTANTS.LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
 
 
@@ -24,7 +29,7 @@ class Parameter(ABC):
         self._units = units
         self._sym = "X"
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"{self._name} [{self._units}]: {self._sym} c "
 
     @abstractmethod
@@ -38,7 +43,6 @@ class Parameter(ABC):
         Returns:
             np.ndarray: array of "ideal" values
         """
-        return
 
     @abstractmethod
     def modulate(self, num: int = 1) -> np.ndarray:
@@ -52,7 +56,6 @@ class Parameter(ABC):
             np.ndarray: array of values following distribution
 
         """
-        return
 
 
 class NormalParameter(Parameter):
@@ -75,11 +78,15 @@ class NormalParameter(Parameter):
         self._stddev = stddev
         self._sym = "N"
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """
         Representation of Normal Parameter
         """
-        return super().__repr__() + f"({self._mean}, {self._stddev}**2)"
+        return (
+            "[Normal Parameter] "
+            + super().__str__()
+            + f"({self._mean}, {self._stddev}**2)"
+        )
 
     def ideal(self, num: int = 1) -> np.ndarray:
         """
@@ -106,6 +113,22 @@ class NormalParameter(Parameter):
         """
         return np.random.normal(self._mean, self._stddev, num)
 
+    @staticmethod
+    def from_dict(item: Dict):
+        assert len(item.keys()) == 1, "More than 1 Parameter passed into JSON"
+        key = list(item.keys())[0]
+
+        # load in sub-dict to extract values
+        subdict: Dict = item.get(key)
+        units = subdict.get("UNITS", "")
+        mean = subdict.get("MEAN", 0)
+        stddev = subdict.get("STDDEV", 0)
+
+        # ensure default option for lazy JSON enters
+        par = NormalParameter(key, units, mean, stddev)
+
+        return par
+
 
 class UniformParameter(Parameter):
     """
@@ -127,11 +150,13 @@ class UniformParameter(Parameter):
         self._high = high
         self._sym = "U"
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """
         Representation of Normal Parameter
         """
-        return super().__repr__() + f"[{self._low}, {self._high}]"
+        return (
+            "[Uniform Parameter] " + super().__str__() + f"[{self._low}, {self._high}]"
+        )
 
     def ideal(self, num: int = 1) -> np.ndarray:
         """
@@ -157,3 +182,8 @@ class UniformParameter(Parameter):
 
         """
         return np.random.uniform(self._low, self._high, num)
+
+
+if __name__ == "__main__":
+    d = {"A": {"MEAN": 24, "UNITS": "mm", "STDDEV": 0}}
+    print(NormalParameter.from_dict(d))
