@@ -14,9 +14,27 @@ Steps to model:
 startrackermodel
 """
 
+import logging
+import logging.config
 import numpy as np
 import polars as pl
 import matplotlib.pyplot as plt
-import logging
+from classes import arguments as args
 
+from data import CONSTANTS
+
+logging.config.dictConfig(CONSTANTS.LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
+
+
+def create_data():
+    return
+
+
+def compose_arguments():
+    return
+
+
+if __name__ == "__main__":
+    x = np.linspace(0, 1, 100)
+    y = np.linspace(0, 1, 100) * 5 + 3
