@@ -1,0 +1,192 @@
+{
+  "DESCRIPTION":"test_desc",
+  "IDEAL":{
+    "FOCAL_LENGTH": {
+      "UNITS": "mm",
+      "MEAN": 24,
+      "STDDEV": 0
+    },
+    "FOCAL_ARRAY":{
+      "UNITS": "px",
+      "MEAN": 1024,
+      "STDDEV": 0
+    },
+    "FOCAL_ARRAY_EPS_X":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 0
+    },
+    "FOCAL_ARRAY_EPS_Y":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 0
+    },
+    "FOCAL_ARRAY_EPS_Z":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 0
+    },
+    "FOCAL_ARRAY_PHI_X":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 0
+    },
+    "FOCAL_ARRAY_THETA_Y":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 0
+    },
+    "FOCAL_ARRAY_PSI_Z":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 0
+    },
+    "MAX_VIS_MAG":{
+      "UNITS": "mv",
+      "MEAN": 10000,
+      "STDDEV": 0
+    
+    }
+  },
+  "GOOD":{
+    "FOCAL_LENGTH": {
+      "UNITS": "mm",
+      "MEAN": 24,
+      "STDDEV": 0.1
+    },
+    "FOCAL_ARRAY":{
+      "UNITS": "px",
+      "MEAN": 1024,
+      "STDDEV": 0
+    },
+    "FOCAL_ARRAY_EPS_X":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 0.1
+    },
+    "FOCAL_ARRAY_EPS_Y":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 0.1
+    },
+    "FOCAL_ARRAY_EPS_Z":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 0.1
+    },
+    "FOCAL_ARRAY_PHI_X":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 0.01
+    },
+    "FOCAL_ARRAY_THETA_Y":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 0.01
+    },
+    "FOCAL_ARRAY_PSI_Z":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 0.01
+    },
+    "MAX_VIS_MAG":{
+      "UNITS": "mv",
+      "MEAN": 5.4,
+      "STDDEV": 0.115
+    }
+  },
+  "BAD":{
+    "FOCAL_LENGTH": {
+      "UNITS": "mm",
+      "MEAN": 24,
+      "STDDEV": 1
+    },
+    "FOCAL_ARRAY":{
+      "UNITS": "px",
+      "MEAN": 1024,
+      "STDDEV": 0
+    },
+    "FOCAL_ARRAY_EPS_X":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 1
+    },
+    "FOCAL_ARRAY_EPS_Y":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 1
+    },
+    "FOCAL_ARRAY_EPS_Z":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 1
+    },
+    "FOCAL_ARRAY_PHI_X":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 0.1
+    },
+    "FOCAL_ARRAY_THETA_Y":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 0.1
+    },
+    "FOCAL_ARRAY_PSI_Z":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 0.1
+    },
+    "MAX_VIS_MAG":{
+      "UNITS": "mv",
+      "MEAN": 5.4,
+      "STDDEV": 0.5
+    }
+  },
+  "UGLY":{
+    "FOCAL_LENGTH": {
+      "UNITS": "mm",
+      "MEAN": 24,
+      "STDDEV": 5
+    },
+    "FOCAL_ARRAY":{
+      "UNITS": "px",
+      "MEAN": 1024,
+      "STDDEV": 0
+    },
+    "FOCAL_ARRAY_EPS_X":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 5
+    },
+    "FOCAL_ARRAY_EPS_Y":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 5
+    },
+    "FOCAL_ARRAY_EPS_Z":{
+      "UNITS": "px",
+      "MEAN": 0,
+      "STDDEV": 5
+    },
+    "FOCAL_ARRAY_PHI_X":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 1
+    },
+    "FOCAL_ARRAY_THETA_Y":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 1
+    },
+    "FOCAL_ARRAY_PSI_Z":{
+      "UNITS": "deg",
+      "MEAN": 0,
+      "STDDEV": 1
+    },
+    "MAX_VIS_MAG":{
+      "UNITS": "mv",
+      "MEAN": 3.5,
+      "STDDEV": 0.5
+    }
+  }
+}
