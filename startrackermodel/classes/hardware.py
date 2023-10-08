@@ -1,7 +1,7 @@
 """
 hardware
 
-Class to contain all hardware-associated parameters for a given run.
+Class to contain all hardware-associated meters for a given run.
 Includes:
     - Focal Length (mm) + deviations
     - Focal Array width/height (px; assumes square, 0 deviations)
