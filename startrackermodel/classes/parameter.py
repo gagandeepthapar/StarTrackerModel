@@ -7,11 +7,12 @@ Generate n values following the intended distribution and perform vectorized mat
 startrackermodel
 """
 
+import logging
+import logging.config
+
 from abc import ABC, abstractmethod
 from typing import Dict
 import numpy as np
-import logging
-import logging.config
 
 from data import CONSTANTS
 
@@ -25,12 +26,12 @@ class Parameter(ABC):
     """
 
     def __init__(self, name: str, units: str):
-        self._name = name
+        self.name = name
         self._units = units
         self._sym = "X"
 
-    def __str__(self) -> str:
-        return f"{self._name} [{self._units}]: {self._sym} c "
+    def __repr__(self) -> str:
+        return f"{self.name} [{self._units}]: {self._sym}"
 
     @abstractmethod
     def ideal(self, num: int = 1) -> np.ndarray:
@@ -55,6 +56,18 @@ class Parameter(ABC):
         Returns:
             np.ndarray: array of values following distribution
 
+        """
+
+    @abstractmethod
+    def span(self, num: int = 1) -> np.ndarray:
+        """
+        Return [1 x n] array of values spanning [-5 sigma, 5sigma] of parameter
+
+        Inputs:
+            num (int)   : number of values in array
+
+        Returns:
+            np.ndarray  : array of values spanning the range
         """
 
 
@@ -78,13 +91,13 @@ class NormalParameter(Parameter):
         self._stddev = stddev
         self._sym = "N"
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         """
         Representation of Normal Parameter
         """
         return (
             "[Normal Parameter] "
-            + super().__str__()
+            + super().__repr__()
             + f"({self._mean}, {self._stddev}**2)"
         )
 
@@ -98,7 +111,7 @@ class NormalParameter(Parameter):
         Returns:
             np.ndarray: array of "ideal" values
         """
-        return np.ones((1, num)) * self._mean
+        return np.ones(num) * self._mean
 
     def modulate(self, num: int = 1) -> np.ndarray:
         """
@@ -113,13 +126,39 @@ class NormalParameter(Parameter):
         """
         return np.random.normal(self._mean, self._stddev, num)
 
+    def span(self, num: int = 1) -> np.ndarray:
+        """
+        Return [1 x n] array of values spanning [-5 sigma, 5sigma] of parameter
+
+        Inputs:
+            num (int)   : number of values in array
+
+        Returns:
+            np.ndarray  : array of values spanning the range
+        """
+        return np.linspace(
+            self._mean - 5 * self._stddev, self._mean + 5 * self._stddev, num
+        )
+
     @staticmethod
-    def from_dict(item: Dict):
+    def from_dict(item: Dict[str, Dict[str, str | float]]):
+        """
+        Instantiate a Normal Parameter from JSON
+
+        Inputs:
+            item (dict): Single dictionary with subdicts including the following information:
+                            - UNITS (str)
+                            - MEAN (float). Default to 0
+                            - STDDEV (float). Default to 0
+
+        Returns:
+            NormalParameter
+        """
         assert len(item.keys()) == 1, "More than 1 Parameter passed into JSON"
         key = list(item.keys())[0]
 
         # load in sub-dict to extract values
-        subdict: Dict = item.get(key)
+        subdict: Dict[str, str | float] = item.get(key)
         units = subdict.get("UNITS", "")
         mean = subdict.get("MEAN", 0)
         stddev = subdict.get("STDDEV", 0)
@@ -150,12 +189,12 @@ class UniformParameter(Parameter):
         self._high = high
         self._sym = "U"
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         """
         Representation of Normal Parameter
         """
         return (
-            "[Uniform Parameter] " + super().__str__() + f"[{self._low}, {self._high}]"
+            "[Uniform Parameter] " + super().__repr__() + f"[{self._low}, {self._high}]"
         )
 
     def ideal(self, num: int = 1) -> np.ndarray:
@@ -168,7 +207,7 @@ class UniformParameter(Parameter):
         Returns:
             np.ndarray: array of "ideal" values
         """
-        return 0.5 * (self._low + self._high) * np.ones((1, num))
+        return 0.5 * (self._low + self._high) * np.ones(num)
 
     def modulate(self, num: int = 1) -> np.ndarray:
         """
@@ -182,6 +221,18 @@ class UniformParameter(Parameter):
 
         """
         return np.random.uniform(self._low, self._high, num)
+
+    def span(self, num: int = 1) -> np.ndarray:
+        """
+        Return [1 x n] array of values that span the bounds of the parameter
+
+        Inputs:
+            num (int)   : number of values to span the range
+
+        Returns:
+            np.ndarray  : array spanning the range
+        """
+        return np.linspace(self._low, self._high, num)
 
 
 if __name__ == "__main__":
