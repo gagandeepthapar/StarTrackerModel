@@ -85,28 +85,84 @@ class Hardware(Component):
             self.f_arr_psi_z,
             self.max_vis_mag,
         ]
-        return
 
-    def modulate(self, num: int) -> pl.DataFrame:
+    def modulate(self, num: int) -> pd.DataFrame:
         """
-        Modulate all objects in class simultaneously
+        Update modulate base class with derived parameters
 
         Inputs:
-            num (int): number of values to generate for each Parameter
+            num (int): number of rows to generate
 
         Returns:
-            pl.DataFrame: Polars DataFrame containing all generated data
+            pd.DataFrame: DF with FOV column
         """
-        print([param._name for param in self.object_list])
-        return pl.DataFrame(
-            {param._name: param.modulate(num) for param in self.object_list}
+        hw_df = super().modulate(num)
+        full_hw_df = Hardware.complete_fov_cols(hw_df)
+        return full_hw_df
+
+    def span(self, num: int) -> pd.DataFrame:
+        """
+        Update modulate base class with derived parameters
+
+        Inputs:
+            num (int): number of rows to generate
+
+        Returns:
+            pd.DataFrame: DF with FOV column
+        """
+        hw_df = super().modulate(num)
+        full_hw_df = Hardware.complete_fov_cols(hw_df)
+        return full_hw_df
+
+    @staticmethod
+    def complete_fov_cols(hardware_data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Compute FOV based on focal array and focal length
+
+        Inputs:
+            hardware_data (pd.DataFrame): dataframe of hardware values
+
+        Returns:
+            pd.DataFrame: DF with MAX_FOV, FOV_X, FOV_Y columns
+        """
+
+        hardware_data["MAX_FOV"] = Hardware.compute_fov(
+            hardware_data[["FOCAL_ARRAY_X", "FOCAL_ARRAY_Y"]].apply(
+                np.linalg.norm, axis=1
+            ),
+            hardware_data.FOCAL_LENGTH,
         )
+        hardware_data["FOV_X"] = Hardware.compute_fov(
+            hardware_data.FOCAL_ARRAY_X, hardware_data.FOCAL_LENGTH
+        )
+        hardware_data["FOV_Y"] = Hardware.compute_fov(
+            hardware_data.FOCAL_ARRAY_Y, hardware_data.FOCAL_LENGTH
+        )
+        return hardware_data
+
+    @staticmethod
+    def compute_fov(focal_array: float, focal_length: float) -> float:
+        """
+        Compute FOV of hardware based on focal array, focal length
+
+        Inputs:
+            focal_array (float): number of pixels on edge of array
+            focal_length (float): focal_length in pixels
+
+        Returns:
+            float: full FOV of hardware
+        """
+        return 2 * np.arctan2(0.5 * focal_array, focal_length)
+
+    def __repr__(self) -> str:
+        """
+        Return representation of class
+        """
+        comp_repr = ""
+        for comp_obj in self.object_list:
+            comp_repr += "\t" + str(comp_obj) + "\n"
+        return f"Hardware Class:\n{comp_repr}"
 
 
 if __name__ == "__main__":
-    n = par.NormalParameter("A", "-", 0, 1)
-    h = Hardware(n, n, n, n, n, n, n, n, n)
-    print(h)
-    df = h.modulate(10)
-    print(h.object_list)
-    print(df)
+    n = NormalParameter("A", "-", 0, 1)
