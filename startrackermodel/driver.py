@@ -12,14 +12,19 @@ startrackermodel
 # pylint: disable=locally-disabled
 import logging
 import logging.config
+from typing import Dict
 import argparse
 import json
-from time import perf_counter, perf_counter_ns
 import numpy as np
-
+import pandas as pd
 from classes import parameter as par
 from classes.hardware import Hardware
+from classes.software import Software
+from classes.environment import Environment
+from classes.estimation import Estimation
+from scripts.composer import Composer, SimType
 from data import CONSTANTS
+from classes.parameter import NormalParameter
 
 logging.config.dictConfig(CONSTANTS.LOGGING_CONFIG)
 logger = logging.getLogger("driver")
@@ -106,6 +111,15 @@ Estimate accuracy and precision of a star tracker via error propagation from har
         default=None,
     )
 
+    parser.add_argument(
+        "-sim",
+        "--simtype",
+        metavar="",
+        type=str,
+        help="Set simulation type to (M)onte Carlo or (S)ensitivity. Default to Monte Carlo.",
+        default="M",
+    )
+
     """
     Simulation Object Parameters
     """
@@ -175,21 +189,33 @@ Estimate accuracy and precision of a star tracker via error propagation from har
 
 
 def create_hardware(hardware_flag: str, default: str = "IDEAL") -> Hardware:
-    with open("data/hardware.json") as hwfp:
+    """
+    Instantiate Hardware Class based on user-supplied CLI flag
+
+    Inputs:
+        hardware_flag (str) : CLI flag indicating which dict from hardware.json to use
+        default (str)       : default dict (IDEAL) in case user-supplied does not exist
+
+    Returns:
+        Hardware            : Hardware class containing startracker hardware parameters
+    """
+    with open("data/hardware.json", encoding="utf-8") as hwfp:
         hwdict = json.load(hwfp)
 
     if hardware_flag.upper() not in hwdict.keys():
         logger.warning(
-            "%s not found in data/hardware.json config file."
+            "%s not found in data/hardware.json config file. "
             "Continuing with %s hardware",
             hardware_flag,
             default,
         )
+        hardware_flag = default
 
     # attempt to retrieve JSON dict of user-supplied data
-    hwconfig = hwdict.get(hardware_flag.upper(), default)
-    par_dict = {
-        k: par.NormalParameter.from_dict({k: hwconfig.get(k)}) for k in hwconfig
+    hwconfig = hwdict.get(hardware_flag.upper())  # top level dict in JSON
+    par_dict: Dict[str, par.Parameter] = {
+        comp_name: par.NormalParameter.from_dict({comp_name: hwconfig.get(comp_name)})
+        for comp_name in hwconfig
     }
     return Hardware(par_dict)
 
@@ -199,15 +225,40 @@ if __name__ == "__main__":
     cmd_arguments = parse_arguments()
 
     # set random seed
+    logger.info("Setting Seed: %s", str(cmd_arguments.randomseed))
     np.random.seed(cmd_arguments.randomseed)
 
+    # Set sim type
+    match cmd_arguments.simtype.upper():
+        case "S" | "SENSITVITY":
+            sim_type = SimType.SENSITIVITY
+        case "M" | "MONTECARLO":
+            sim_type = SimType.MONTE_CARLO
+        case _:
+            sim_type = SimType.MONTE_CARLO
+    logger.info("Setting Sim Type: %s", str(sim_type))
+
     # Instantiate hardware
+    logger.info("Instantiating Hardware")
     sim_hw = create_hardware(cmd_arguments.hardware)
+    logger.debug(sim_hw)
 
     # Instantiate software
+    logger.info("Instantiating Software")
+    sim_sw = create_hardware(cmd_arguments.hardware)
+    # logger.debug(sim_hw)
 
     # Instantiate estimation
+    logger.info("Instantiating Estimation")
+    sim_est = create_hardware(cmd_arguments.hardware)
+    # logger.debug(sim_hw)
 
     # Instantiate environment
+    logger.info("Instantiating Environment")
+    sim_env = create_hardware(cmd_arguments.hardware)
+    # logger.debug(sim_hw)
 
     # Pass into composer
+    hw = Hardware({"FOCAL_LENGTH": NormalParameter("FOCAL_LENGTH", "mm", 24, 1.5)})
+    composer = Composer(hw, hw, sim_type)
+    df = composer.span(1000)
