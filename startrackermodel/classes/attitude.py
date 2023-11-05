@@ -88,12 +88,14 @@ class Attitude(comp.Component):
         Returns:
             np.ndarray  : unit vector in same frame as inputs
         """
-        return np.array(
-            [
-                np.cos(right_asc) * np.cos(dec),
-                np.sin(right_asc) * np.cos(dec),
-                np.sin(dec),
-            ]
+        return Attitude.unit(
+            np.array(
+                [
+                    np.cos(right_asc) * np.cos(dec),
+                    np.sin(right_asc) * np.cos(dec),
+                    np.sin(dec),
+                ]
+            )
         )
 
     @staticmethod
@@ -116,21 +118,21 @@ class Attitude(comp.Component):
 
         # calc rotation matrix
         ra_dec_roll_data["R_STAR"] = ra_dec_roll_data.apply(
-            lambda row: Attitude.ra_dec_to_rotm(
+            lambda row: Attitude.ra_dec_roll_to_rotm(
                 row.RIGHT_ASCENSION, row.DECLINATION, row.ROLL
             ),
             axis=1,
-        )
+        )  # type: ignore
 
         # calc q_true
-        ra_dec_roll_data["Q_TRUE"] = ra_dec_roll_data["R_STAR"].apply(
-            Attitude.rotm_to_quat
-        )
+        ra_dec_roll_data["Q_STAR"] = ra_dec_roll_data["R_STAR"].apply(
+            Attitude.rotm_to_quat  # type:ignore
+        )  # type:ignore
 
         return ra_dec_roll_data
 
     @staticmethod
-    def ra_dec_to_rotm(right_asc: float, dec: float, roll: float) -> np.ndarray:
+    def ra_dec_roll_to_rotm(right_asc: float, dec: float, roll: float) -> np.ndarray:
         """
         Converts full attitude in 3-angle system to unique rotation matrix
 
@@ -142,6 +144,14 @@ class Attitude(comp.Component):
         Returns:
             np.ndarray: 3x3 Rotation matrix to rotate from ECI into body-frame (assuming Z-axis is along boresight)
         """
+        z_hat = Attitude.ra_dec_to_uvec(right_asc, dec)
+        x_hat_pre = np.array(
+            [np.cos(right_asc - np.pi / 2), np.sin(right_asc - np.pi / 2), 0]
+        )
+        x_hat = Attitude.axangxform(x_hat_pre, z_hat, roll)
+        y_hat = Attitude.unit(np.cross(z_hat, x_hat))
+        return np.array([x_hat, y_hat, z_hat])
+
     @staticmethod
     def unit(u1: np.ndarray) -> np.ndarray:
         """
