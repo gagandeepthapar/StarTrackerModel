@@ -1,0 +1,32 @@
+{
+    "DESCRIPTION":"Store software information of your camera here. Ensure the following fields exist as a value to the provided key: ERROR_MULTIPLIER. Each field should include a Name, units, mean, stddev. Mean and stddev will default to 0 if missing. Fields will default to ideal if missing. Use the IDEAL/GOOD/BAD/UGLY examples to build up custom classes.",
+    "IDEAL":{
+        "ERROR_MULTIPLIER": {
+        "UNITS": "-",
+        "MEAN": 0,
+        "STDDEV": 0
+      }
+    },
+    "GOOD":{
+        "ERROR_MULTIPLIER": {
+        "UNITS": "-",
+        "MEAN": 1,
+        "STDDEV": 0.1
+      }
+    },
+    "BAD":{
+        "ERROR_MULTIPLIER": {
+        "UNITS": "-",
+        "MEAN": 2,
+        "STDDEV": 0.1
+      }
+    },
+    "UGLY":{
+        "ERROR_MULTIPLIER": {
+        "UNITS": "-",
+        "MEAN": 5,
+        "STDDEV": 0.1
+      }
+    }
+  }
+  
