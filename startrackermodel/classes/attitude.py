@@ -252,10 +252,70 @@ class Attitude(comp.Component):
         )
 
     @staticmethod
+    def quest_algorithm(
+        w_set: np.ndarray, v_set: np.ndarray, *, eps: float = 1e-6, max_it: int = 50
+    ) -> np.ndarray:
         """
+        Implementation of QUEST algorithm from "Spacecraft Dynamics and Control", DeRuiter
 
+        Args:
+            w_set (np.ndarray): Set of unit vectors in body-frame
+            v_set (np.ndarray): Set of unit vectors in inertial-frame
+            eps (float)       : tolerance to stop Newton-Raphson method
+            max_it (int)      : max number of iterations for N-R Method
 
         Returns:
+            np.ndarray: quaternion from v_set to w_set to minimize residuals
+        """
+        a_weights = Attitude.unit(np.ones(len(w_set)))
+
+        # compute lambda params
+        B = ((w_set[:, :, None] * v_set[:, None, :]) * a_weights[:, None, None]).sum(0)
+        S = B + B.T
+        k_12 = np.array([B[1][2] - B[2][1], B[2][0] - B[0][2], B[0][1] - B[1][0]]).T
+        k_22 = np.trace(B)
+
+        # compute classical adjoint of S
+        S_det = np.linalg.det(S)
+        S_adj = (np.linalg.inv(S).T * S_det).T
+
+        # compute intermediate values for Newton-Raphson method
+        a = k_22**2 - np.trace(S_adj)
+        b = k_22**2 + k_12.T @ k_12
+        c = np.linalg.det(S) + k_12.T @ S @ k_12
+        d = k_12.T @ S @ S @ k_12
+
+        # newton raphson method to compute optimal lambda paramter
+        e0 = 1
+        e1 = e0 - (
+            Attitude.__opt_lam_f(e0, a, b, c, d, k_22)
+            / Attitude.__opt_lam_fp(e0, a, b, c)
+        )
+
+        err = np.abs(e1 - e0)
+        it = 0
+        while err > eps and it < max_it:
+            e0 = e1
+            e1 = e0 - (
+                Attitude.__opt_lam_f(e0, a, b, c, d, k_22)
+                / Attitude.__opt_lam_fp(e0, a, b, c)
+            )
+            err = np.abs(e0 - e1)
+
+        opt_lam = e1
+
+        # compute quaternion conversion parameters
+        alpha = opt_lam**2 - k_22**2 + np.trace(S_adj)
+        beta = opt_lam - k_22
+        gamma = (opt_lam + k_22) * alpha - np.linalg.det(S)
+
+        # compute quaternion
+        X = (alpha * np.eye(3) + beta * S + (S @ S)) @ k_12
+        f = 1 / np.sqrt(gamma**2 + X.T @ X)
+        q13 = f * X
+        q4 = f * gamma
+        return Attitude.unit(np.array([*q13, q4]))
+
     @staticmethod
     def quat_compare(q1: np.ndarray, q2: np.ndarray) -> float:
         """
@@ -279,7 +339,34 @@ class Attitude(comp.Component):
 
         return 2 * np.arctan2(np.sqrt(qdiff[0:3].T @ qdiff[0:3]), qdiff[3])
 
+    @staticmethod
+    def __opt_lam_f(
+        lam: float, a: float, b: float, c: float, d: float, k: float
+    ) -> float:
         """
+        Newton Raphson Method to compute optimal lambda parameter for QUEST
+
+        Returns:
+            float: function return
+        """
+        A = lam**4
+        B = -(a + b) * lam**2
+        C = -c * lam
+        D = a * b + c * k - d
+        return A + B + C + D
+
+    @staticmethod
+    def __opt_lam_fp(lam: float, a: float, b: float, c: float) -> float:
+        """
+        Newton Raphson Method to compute optimal lambda parameter for QUEST
+
+        Returns:
+            float: function derivative return
+        """
+        A = 4 * lam**3
+        B = -2 * (a + b) * lam
+        C = -c
+        return A + B + C
 
 
 if __name__ == "__main__":
