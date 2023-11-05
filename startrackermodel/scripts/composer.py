@@ -45,7 +45,7 @@ class Composer:
     def __init__(
         self,
         hardware: Hardware,
-        software: Hardware,
+        software: Software,
         # environment: Environment,
         # estimation: Estimation,
         sim_type: SimType,
