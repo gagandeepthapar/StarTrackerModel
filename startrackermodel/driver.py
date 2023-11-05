@@ -192,7 +192,9 @@ Estimate accuracy and precision of a star tracker via error propagation from har
     return args
 
 
-def create_hardware(hardware_flag: str, default: str = "IDEAL") -> Hardware:
+def create_hardware(
+    hardware_flag: str, default: str = "IDEAL", cfg_file: str = "data/hardware.json"
+) -> Hardware:
     """
     Instantiate Hardware Class based on user-supplied CLI flag
 
@@ -203,14 +205,20 @@ def create_hardware(hardware_flag: str, default: str = "IDEAL") -> Hardware:
     Returns:
         Hardware            : Hardware class containing startracker hardware parameters
     """
-    with open("data/hardware.json", encoding="utf-8") as hwfp:
+    if not isfile(cfg_file):
+        logger.warning(
+            "%s file not found. " "Continuing with data/hardware.json", cfg_file
+        )
+        cfg_file = "data/hardware.json"
+
+    with open(cfg_file, encoding="utf-8") as hwfp:
         hwdict = json.load(hwfp)
 
     if hardware_flag.upper() not in hwdict.keys():
         logger.warning(
-            "%s not found in data/hardware.json config file. "
-            "Continuing with %s hardware",
+            "%s not found in %s config file. " "Continuing with %s hardware",
             hardware_flag,
+            cfg_file,
             default,
         )
         hardware_flag = default
