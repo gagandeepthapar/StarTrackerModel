@@ -30,6 +30,7 @@ from classes.estimation import Estimation
 from classes.attitude import Attitude
 from classes.parameter import Parameter
 from classes.component import Component
+from classes.starframe import StarFrame
 from classes.enums import SimType
 
 logging.config.dictConfig(CONSTANTS.LOGGING_CONFIG)
@@ -64,28 +65,7 @@ class Composer:
             # self.estimation,
         ]
 
-        self.frontend_data = pd.DataFrame()
-        self.backend_data = pd.DataFrame()
-        self.star_catalog = self.prep_star_catalog()
-
-    @staticmethod
-    def prep_star_catalog() -> pd.DataFrame:
-        star_catalog: pd.DataFrame = pd.read_pickle(CONSTANTS.YBSC_PKL)
-        star_catalog = star_catalog.drop(
-            [
-                "spectral_type_a",
-                "spectral_type_b",
-                "ascension_proper_motion",
-                "declination_proper_motion",
-            ],
-            axis=1,
-        )
-        star_catalog["UVEC_ECI"] = star_catalog.apply(
-            lambda row: Attitude.ra_dec_to_uvec(row.right_ascension, row.declination),
-            axis=1,
-        )
-        star_catalog.catalog_number = star_catalog.catalog_number.astype("int")
-        return star_catalog
+        self.starframe = StarFrame()
 
     def generate_data(self, num: int) -> pd.DataFrame:
         """
