@@ -76,9 +76,6 @@ class Hardware(Component):
         self.f_arr_theta_z._stddev *= CONSTANTS.DEG2RAD  # type:ignore
         self.f_arr_theta_z._units = "rad"
 
-        self.max_vis_mag = hardware_dict.get(
-            "MAX_VIS_MAG", NormalParameter("MAX_VIS_MAG", "mv", 10000, 0)
-        )
         self.hw_data: pd.DataFrame = pd.DataFrame()
 
         self.object_list: List[Parameter] = [
