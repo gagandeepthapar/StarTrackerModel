@@ -50,7 +50,6 @@ logger = logging.getLogger(__name__)
 __CONST_ROOT = os.path.dirname(os.path.realpath(__file__))
 
 # Useful files
-YBSC_CSV = os.path.join(__CONST_ROOT, "YBSC.csv")
 YBSC_PKL = os.path.join(__CONST_ROOT, "YBSC.pkl")
 
 # Constants
