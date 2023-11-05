@@ -104,7 +104,7 @@ class Hardware(Component):
             pd.DataFrame: DF with FOV column
         """
         hw_df = super().modulate(num)
-        full_hw_df = Hardware.complete_fov_cols(hw_df)
+        full_hw_df = Hardware.precompute_metrics(hw_df)
         return full_hw_df
 
     def span(self, num: int) -> pd.DataFrame:
@@ -122,30 +122,70 @@ class Hardware(Component):
         return full_hw_df
 
     @staticmethod
-    def complete_fov_cols(hardware_data: pd.DataFrame) -> pd.DataFrame:
+    def precompute_metrics(hardware_data: pd.DataFrame) -> pd.DataFrame:
         """
-        Compute FOV based on focal array and focal length
+        Precompute metrics for hardware errors
 
         Inputs:
             hardware_data (pd.DataFrame): dataframe of hardware values
 
         Returns:
-            pd.DataFrame: DF with MAX_FOV, FOV_X, FOV_Y columns
+            pd.DataFrame: DF with fov, r_gamma_pi matrix
         """
 
         hardware_data["MAX_FOV"] = Hardware.compute_fov(
             hardware_data[["FOCAL_ARRAY_X", "FOCAL_ARRAY_Y"]].apply(
                 np.linalg.norm, axis=1
+            ),  # type: ignore
+            hardware_data.FOCAL_LENGTH,  # type: ignore
+        )
+
+        hardware_data["R_GAMMA_PI"] = hardware_data[
+            ["FOCAL_ARRAY_THETA_Z", "FOCAL_ARRAY_THETA_Y", "FOCAL_ARRAY_THETA_X"]
+        ].apply(
+            lambda row: Attitude.rotm_z(CONSTANTS.DEG2RAD * row.FOCAL_ARRAY_THETA_Z)
+            @ Attitude.rotm_y(CONSTANTS.DEG2RAD * row.FOCAL_ARRAY_THETA_Y)
+            @ Attitude.rotm_x(CONSTANTS.DEG2RAD * row.FOCAL_ARRAY_THETA_X),
+            axis=1,
+        )
+
+        hardware_data["R_F_GAMMA_GAMMA"] = hardware_data.apply(
+            lambda row: Hardware.get_r_f_gamma_gamma(
+                row.FOCAL_LENGTH,
+                np.array(
+                    [
+                        row.FOCAL_ARRAY_DELTA_X,
+                        row.FOCAL_ARRAY_DELTA_Y,
+                        row.FOCAL_ARRAY_DELTA_Z,
+                    ]
+                ),
+                row.R_GAMMA_PI,
             ),
-            hardware_data.FOCAL_LENGTH,
+            axis=1,
         )
-        hardware_data["FOV_X"] = Hardware.compute_fov(
-            hardware_data.FOCAL_ARRAY_X, hardware_data.FOCAL_LENGTH
-        )
-        hardware_data["FOV_Y"] = Hardware.compute_fov(
-            hardware_data.FOCAL_ARRAY_Y, hardware_data.FOCAL_LENGTH
-        )
+
         return hardware_data
+
+    @staticmethod
+    def get_r_f_gamma_gamma(
+        flen: float, delv: np.ndarray, r_gamma_pi: np.ndarray
+    ) -> np.ndarray:
+        """
+        compute vector to focal point from gamma plane
+
+        Args:
+            flen (float): focal length in pi system
+            delv (np.ndarray): translation to gamma from pi in pi system
+            r_gamma_pi (np.ndarray): rotation to gamma from pi
+
+        Returns:
+            np.ndarray: vector to focal point from gamma plane
+        """
+        r_f_pi_pi = np.array([0, 0, flen])
+        r_f_gamma_pi = r_f_pi_pi - delv
+        mag = np.linalg.norm(r_f_gamma_pi)
+        dir_gam = r_gamma_pi @ Attitude.unit(r_f_gamma_pi)
+        return mag * dir_gam
 
     @staticmethod
     def compute_fov(focal_array: float, focal_length: float) -> float:
@@ -159,7 +199,7 @@ class Hardware(Component):
         Returns:
             float: full FOV of hardware
         """
-        return 2 * np.arctan2(0.5 * focal_array, focal_length)
+        return 2 * np.arctan(0.5 * focal_array / focal_length)
 
     def __repr__(self) -> str:
         """
