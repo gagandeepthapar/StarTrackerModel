@@ -144,6 +144,152 @@ class Composer:
         logger.critical(data_frame)
         return data_frame
 
+    def run_model(self):
+        # store star within fov per scenario
+        self.model_data["STAR_V_SET"], self.model_data["STAR_MAG"] = zip(
+            *self.model_data[["UVEC_ECI", "MAX_FOV"]].apply(
+                lambda row: self.starframe.filter_stars(row.UVEC_ECI, row.MAX_FOV),
+                axis=1,
+            )
+        )
+
+        # get stars in body frame via R_STAR
+        self.model_data["STAR_W_SET"] = self.model_data[["R_STAR", "STAR_V_SET"]].apply(
+            lambda row: np.array(
+                [row.R_STAR @ star_v_i for star_v_i in row.STAR_V_SET]
+            ),
+            axis=1,
+        )
+
+        # compute stars on rotated field
+        self.model_data["STAR_W_ROT"] = self.model_data[
+            ["R_GAMMA_PI", "STAR_W_SET"]
+        ].apply(
+            lambda row: np.array([row.R_GAMMA_PI @ w_i for w_i in row.STAR_W_SET]),
+            axis=1,
+        )
+
+        # compute image coordinates of incident star
+        self.model_data["LAMBDA_STAR"] = self.model_data[
+            ["STAR_W_ROT", "R_F_GAMMA_GAMMA"]
+        ].apply(
+            lambda row: np.array(
+                [-row.R_F_GAMMA_GAMMA[2] / wi_rot[2] for wi_rot in row.STAR_W_ROT]
+            ),
+            axis=1,
+        )
+
+        # compute s hash set
+        self.model_data["STAR_S_HASH_SET"] = self.model_data[
+            ["LAMBDA_STAR", "STAR_W_ROT", "R_F_GAMMA_GAMMA"]
+        ].apply(
+            lambda row: np.array(
+                [
+                    star_lam_star * wi_rot + row.R_F_GAMMA_GAMMA
+                    for (star_lam_star, wi_rot) in zip(row.LAMBDA_STAR, row.STAR_W_ROT)
+                ]
+            ),
+            axis=1,
+        )
+
+        # remove stars outside sensor
+        self.model_data["IN_SENSOR"] = self.model_data[
+            ["FOCAL_ARRAY_X", "FOCAL_ARRAY_Y", "STAR_S_HASH_SET"]
+        ].apply(
+            lambda row: np.array(
+                [
+                    np.all(
+                        np.less_equal(
+                            np.abs(coords),
+                            np.array([row.FOCAL_ARRAY_X / 2, row.FOCAL_ARRAY_Y / 2, 0]),
+                        )
+                    )
+                    for coords in row.STAR_S_HASH_SET
+                ]
+            ),
+            axis=1,
+        )
+
+        self.model_data["STAR_V_SET"] = self.model_data[
+            ["STAR_V_SET", "IN_SENSOR"]
+        ].apply(lambda row: row.STAR_V_SET[row.IN_SENSOR], axis=1)
+
+        self.model_data["STAR_MAG"] = self.model_data[["STAR_MAG", "IN_SENSOR"]].apply(
+            lambda row: row.STAR_MAG[row.IN_SENSOR], axis=1
+        )
+
+        self.model_data["STAR_S_HASH_SET"] = self.model_data[
+            ["STAR_S_HASH_SET", "IN_SENSOR"]
+        ].apply(lambda row: row.STAR_S_HASH_SET[row.IN_SENSOR], axis=1)
+
+        # store number of stars in each scene
+        self.model_data["N_STARS"] = self.model_data["STAR_MAG"].apply(
+            lambda row: len(row)
+        )
+
+        # compute (delta_x, delta_y) due to centroiding errors
+        self.model_data["ERROR_DIR"] = self.model_data["N_STARS"].apply(
+            lambda n: np.random.uniform(0, 2 * np.pi, n)
+        )
+        self.model_data["C_DEL_X"], self.model_data["C_DEL_Y"] = zip(
+            *self.model_data[["ERROR_DIR", "ERROR_MULTIPLIER", "STAR_MAG"]].apply(
+                lambda row: Software.base_acc(row.STAR_MAG)
+                * row.ERROR_MULTIPLIER
+                * (np.cos(row.ERROR_DIR), np.sin(row.ERROR_DIR)),
+                axis=1,
+            )
+        )
+
+        # recompute measured centroid
+        self.model_data["STAR_S_HASH_SET"] = self.model_data[
+            ["STAR_S_HASH_SET", "C_DEL_X", "C_DEL_Y"]
+        ].apply(
+            lambda row: np.array(
+                [
+                    s_hash_i + np.array([row.C_DEL_X[i], row.C_DEL_Y[i], 0])
+                    for (i, s_hash_i) in enumerate(row.STAR_S_HASH_SET)
+                ]
+            ),
+            axis=1,
+        )
+
+        # recompute measured unit vectors
+        self.model_data["STAR_W_HASH_SET"] = self.model_data[
+            ["STAR_S_HASH_SET", "FOCAL_ARRAY_X", "FOCAL_ARRAY_Y", "FOCAL_LENGTH"]
+        ].apply(
+            lambda row: np.array(
+                [
+                    Attitude.unit(np.array([0, 0, row.FOCAL_LENGTH]) - s_hash_i)
+                    for s_hash_i in row.STAR_S_HASH_SET
+                ]
+            ),
+            axis=1,
+        )
+
+        # drop intermediate columns
+        self.model_data = self.model_data.drop(
+            ["STAR_W_ROT", "LAMBDA_STAR", "IN_SENSOR", "ERROR_DIR"],
+            axis=1,
+        )
+
+        # compute quaternion estimate
+        self.model_data["Q_HASH"] = self.model_data[
+            ["STAR_V_SET", "STAR_W_HASH_SET"]
+        ].apply(
+            lambda row: Attitude.quest_algorithm(
+                row.STAR_W_HASH_SET,
+                np.array([star_hash_i for star_hash_i in row.STAR_V_SET]),
+            ),
+            axis=1,
+        )
+
+        # compute quaternion error
+        self.model_data["ANGULAR_ERROR"] = self.model_data[["Q_STAR", "Q_HASH"]].apply(
+            lambda row: CONSTANTS.RAD2ARCSEC
+            * Attitude.quat_compare(row.Q_STAR, row.Q_HASH),
+            axis=1,
+        )
+
 
 if __name__ == "__main__":
     comp = Composer(Hardware({}), Hardware({}), SimType.MONTE_CARLO)
