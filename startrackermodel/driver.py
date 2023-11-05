@@ -168,19 +168,19 @@ Estimate accuracy and precision of a star tracker via error propagation from har
     """
     parser.add_argument(
         "--showplot",
-        metavar="",
-        type=bool,
+        # metavar="",
+        # type=bool,
         help="Show results of accuracy and precision in plots. Defaults to true.",
-        default=True,
+        action="store_true",
     )
 
     parser.add_argument(
         "--saveplot",
-        metavar="",
-        type=bool,
+        # metavar="",
+        # type=bool,
         help="Save all results of accuracy and precision in plots. "
         "Saves in media/ folder in root directory. Defaults to false.",
-        default=False,
+        action="store_true",
     )
 
     args = parser.parse_args()
