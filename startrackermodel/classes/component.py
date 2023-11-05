@@ -88,3 +88,12 @@ class Component(ABC):
             data_frame = pd.concat([data_frame, param_df], axis=0)
 
         return data_frame
+
+    def __repr__(self) -> str:
+        """
+        Return representation of class
+        """
+        comp_repr = ""
+        for comp_obj in self.object_list:
+            comp_repr += "\t" + str(comp_obj) + "\n"
+        return f"{comp_repr}"
