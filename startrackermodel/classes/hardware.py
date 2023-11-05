@@ -202,10 +202,7 @@ class Hardware(Component):
         """
         Return representation of class
         """
-        comp_repr = ""
-        for comp_obj in self.object_list:
-            comp_repr += "\t" + str(comp_obj) + "\n"
-        return f"Hardware Class:\n{comp_repr}"
+        return f"Hardware Class:\n{super().__repr__()}"
 
 
 if __name__ == "__main__":
