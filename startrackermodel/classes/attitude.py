@@ -142,57 +142,38 @@ class Attitude(comp.Component):
         Returns:
             np.ndarray: 3x3 Rotation matrix to rotate from ECI into body-frame (assuming Z-axis is along boresight)
         """
-
-        return (
-            Attitude.rotm_z(roll)
-            @ Attitude.rotm_y(dec - np.pi / 2)
-            @ Attitude.rotm_z(-right_asc)
-        )
-
     @staticmethod
-    def rotm_x(phi: float) -> np.ndarray:
+    def unit(u1: np.ndarray) -> np.ndarray:
         """
-        Create principal axis rotm about x axis
+        Returns unit vector of u1
 
         Args:
-            phi (float): angle to rotate
+            u1 (np.ndarray): input vector of any length
 
         Returns:
-            np.ndarray: 3x3 rotm
+            np.ndarray: unit vector of u1
         """
-        return np.array(
-            [[1, 0, 0], [0, np.cos(phi), -np.sin(phi)], [0, np.sin(phi), np.cos(phi)]]
-        )
+        return u1 / np.linalg.norm(u1)
 
     @staticmethod
-    def rotm_y(phi: float) -> np.ndarray:
+    def axangxform(u1: np.ndarray, ax: np.ndarray, ang: float) -> np.ndarray:
         """
-        Create principal axis rotm about x axis
+        Rodrigues' Rotation Formula to rotate vector u1 about axis ax through angle ang.
+        Will enforce unit vector u1 and ax
 
         Args:
-            phi (float): angle to rotate
-
+            u1 (np.ndarray): vector to rotate
+            ax (np.ndarray): axis to rotate u1 about
+            ang (float): angle to rotate u1 through [rad]
         Returns:
-            np.ndarray: 3x3 rotm
+            np.ndarray: urot, rotated form of u1 about ax through ang
         """
-        return np.array(
-            [[np.cos(phi), 0, np.sin(phi)], [0, 1, 0], [-np.sin(phi), 0, np.cos(phi)]]
+        urot = (
+            u1 * np.cos(ang)
+            + (np.cross(ax, u1)) * np.sin(ang)
+            + ax * (ax.dot(u1)) * (1 - np.cos(ang))
         )
-
-    @staticmethod
-    def rotm_z(phi: float) -> np.ndarray:
-        """
-        Create principal axis rotm about x axis
-
-        Args:
-            phi (float): angle to rotate
-
-        Returns:
-            np.ndarray: 3x3 rotm
-        """
-        return np.array(
-            [[np.cos(phi), -np.sin(phi), 0], [np.sin(phi), np.cos(phi), 0], [0, 0, 1]]
-        )
+        return Attitude.unit(urot)
 
     @staticmethod
     def rotm_to_quat(R: np.ndarray) -> np.ndarray:
@@ -205,11 +186,100 @@ class Attitude(comp.Component):
         Returns:
             q (np.ndarray): quaternion from A to B
         """
-        n = np.sqrt(R.trace() + 1) / 2
-        e_1 = (R[1, 2] - R[2, 1]) / (4 * n)
-        e_2 = (R[2, 0] - R[0, 2]) / (4 * n)
-        e_3 = (R[0, 1] - R[1, 0]) / (4 * n)
-        return np.array([e_1, e_2, e_3, n])
+        q4 = np.sqrt(R.trace() + 1) / 2
+        # e_1 = (R[1, 2] - R[2, 1]) / (4 * n)
+        # e_2 = (R[2, 0] - R[0, 2]) / (4 * n)
+        # e_3 = (R[0, 1] - R[1, 0]) / (4 * n)
+        q13 = (R - R.T) / (4 * q4)
+        return np.array([q13[1, 2], q13[2, 0], q13[0, 1], q4])
+        # return np.array([e_1, e_2, e_3, n])
+
+    @staticmethod
+    def rotm_x(theta: float) -> np.ndarray:
+        """
+        Return 3D rotation matrix about x axis
+
+        Args:
+            theta (float): angle to rotate through
+
+        Returns:
+            np.ndarray: 3x3 rotm about x-axis through theta
+        """
+        return np.array(
+            [
+                [1, 0, 0],
+                [0, np.cos(theta), -np.sin(theta)],
+                [0, np.sin(theta), np.cos(theta)],
+            ]
+        )
+
+    @staticmethod
+    def rotm_y(theta: float) -> np.ndarray:
+        """
+        Return 3D rotation matrix about y axis
+
+        Args:
+            theta (float): angle to rotate through
+
+        Returns:
+            np.ndarray: 3x3 rotm about y-axis through theta
+        """
+        return np.array(
+            [
+                [np.cos(theta), 0, np.sin(theta)],
+                [0, 1, 0],
+                [-np.sin(theta), 0, np.cos(theta)],
+            ]
+        )
+
+    @staticmethod
+    def rotm_z(theta: float) -> np.ndarray:
+        """
+        Return 3D rotation matrix about z axis
+
+        Args:
+            theta (float): angle to rotate through
+
+        Returns:
+            np.ndarray: 3x3 rotm about z-axis through theta
+        """
+        return np.array(
+            [
+                [np.cos(theta), -np.sin(theta), 0],
+                [np.sin(theta), np.cos(theta), 0],
+                [0, 0, 1],
+            ]
+        )
+
+    @staticmethod
+        """
+
+
+        Returns:
+    @staticmethod
+    def quat_compare(q1: np.ndarray, q2: np.ndarray) -> float:
+        """
+        Compare 2 quaternions and return the angular error between them
+
+        Args:
+            q1 (np.ndarray): q1
+            q2 (np.ndarray): q2
+
+        Returns:
+            float: angular error [rad]
+        """
+        q1_conj = np.array([*(-1 * q1[0:3]), q1[3]])
+        q2_q1_13 = (
+            (q1_conj[3] * q2[0:3])
+            + (q2[3] * q1_conj[0:3])
+            + np.cross(q2[0:3], q1_conj[0:3])
+        )
+        q2_q1_4 = q2[3] * q1_conj[3] - q1_conj[0:3].T @ q2[0:3]
+        qdiff = np.array([*q2_q1_13, q2_q1_4])
+
+        return 2 * np.arctan2(np.sqrt(qdiff[0:3].T @ qdiff[0:3]), qdiff[3])
+
+        """
 
 
 if __name__ == "__main__":
