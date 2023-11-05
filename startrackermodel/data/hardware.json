@@ -1,9 +1,9 @@
 {
-  "DESCRIPTION":"Store hardware information of your camera here. Ensure the following fields exist as a value to the provided key: Focal Length, Focal Array, Focal Array Eps X/Y/Z, Focal Array Phi X/Theta Y/Psi Z, Max Vis Mag. Each field should include a Name, units, mean, stddev. Mean and stddev will default to 0 if missing. Fields will default to ideal if missing. Use the IDEAL/GOOD/BAD/UGLY examples to build up custom classes. Focal Array should be 0 standard deviation as this is the number of pixels on a single edge of the focal array.",
+  "DESCRIPTION":"Store hardware information of your camera here. Ensure the following fields exist as a value to the provided key: Focal Length, Focal Array, Focal Array DELTA X/Y/Z, Focal Array THETA X/Theta Y/THETA Z, Max Vis Mag. Each field should include a Name, units, mean, stddev. Mean and stddev will default to 0 if missing. Fields will default to ideal if missing. Use the IDEAL/GOOD/BAD/UGLY examples to build up custom classes. Focal Array should be 0 standard deviation as this is the number of pixels on a single edge of the focal array.",
   "IDEAL":{
         "FOCAL_LENGTH": {
       "UNITS": "px",
-      "MEAN": 7000,
+      "MEAN": 3500,
       "STDDEV": 0
     },
     "FOCAL_ARRAY_X":{
@@ -16,22 +16,22 @@
       "MEAN": 1024,
       "STDDEV": 0
     },
-    "FOCAL_ARRAY_EPS_X":{
+    "FOCAL_ARRAY_DELTA_X":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 0
     },
-    "FOCAL_ARRAY_EPS_Y":{
+    "FOCAL_ARRAY_DELTA_Y":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 0
     },
-    "FOCAL_ARRAY_EPS_Z":{
+    "FOCAL_ARRAY_DELTA_Z":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 0
     },
-    "FOCAL_ARRAY_PHI_X":{
+    "FOCAL_ARRAY_THETA_X":{
       "UNITS": "deg",
       "MEAN": 0,
       "STDDEV": 0
@@ -41,7 +41,7 @@
       "MEAN": 0,
       "STDDEV": 0
     },
-    "FOCAL_ARRAY_PSI_Z":{
+    "FOCAL_ARRAY_THETA_Z":{
       "UNITS": "deg",
       "MEAN": 0,
       "STDDEV": 0
@@ -56,7 +56,7 @@
   "GOOD":{
         "FOCAL_LENGTH": {
       "UNITS": "px",
-      "MEAN": 7000,
+      "MEAN": 3500,
       "STDDEV": 7
     },
     "FOCAL_ARRAY_X":{
@@ -69,22 +69,22 @@
       "MEAN": 1024,
       "STDDEV": 0
     },
-    "FOCAL_ARRAY_EPS_X":{
+    "FOCAL_ARRAY_DELTA_X":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 0.1
     },
-    "FOCAL_ARRAY_EPS_Y":{
+    "FOCAL_ARRAY_DELTA_Y":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 0.1
     },
-    "FOCAL_ARRAY_EPS_Z":{
+    "FOCAL_ARRAY_DELTA_Z":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 0.1
     },
-    "FOCAL_ARRAY_PHI_X":{
+    "FOCAL_ARRAY_THETA_X":{
       "UNITS": "deg",
       "MEAN": 0,
       "STDDEV": 0.01
@@ -94,7 +94,7 @@
       "MEAN": 0,
       "STDDEV": 0.01
     },
-    "FOCAL_ARRAY_PSI_Z":{
+    "FOCAL_ARRAY_THETA_Z":{
       "UNITS": "deg",
       "MEAN": 0,
       "STDDEV": 0.01
@@ -108,7 +108,7 @@
   "BAD":{
         "FOCAL_LENGTH": {
       "UNITS": "px",
-      "MEAN": 7000,
+      "MEAN": 3500,
       "STDDEV": 70
     },
     "FOCAL_ARRAY_X":{
@@ -121,22 +121,22 @@
       "MEAN": 1024,
       "STDDEV": 0
     },
-    "FOCAL_ARRAY_EPS_X":{
+    "FOCAL_ARRAY_DELTA_X":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 1
     },
-    "FOCAL_ARRAY_EPS_Y":{
+    "FOCAL_ARRAY_DELTA_Y":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 1
     },
-    "FOCAL_ARRAY_EPS_Z":{
+    "FOCAL_ARRAY_DELTA_Z":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 1
     },
-    "FOCAL_ARRAY_PHI_X":{
+    "FOCAL_ARRAY_THETA_X":{
       "UNITS": "deg",
       "MEAN": 0,
       "STDDEV": 0.1
@@ -146,7 +146,7 @@
       "MEAN": 0,
       "STDDEV": 0.1
     },
-    "FOCAL_ARRAY_PSI_Z":{
+    "FOCAL_ARRAY_THETA_Z":{
       "UNITS": "deg",
       "MEAN": 0,
       "STDDEV": 0.1
@@ -160,7 +160,7 @@
   "UGLY":{
         "FOCAL_LENGTH": {
       "UNITS": "px",
-      "MEAN": 7000,
+      "MEAN": 3500,
       "STDDEV": 350
     },
     "FOCAL_ARRAY_X":{
@@ -173,22 +173,22 @@
       "MEAN": 1024,
       "STDDEV": 0
     },
-    "FOCAL_ARRAY_EPS_X":{
+    "FOCAL_ARRAY_DELTA_X":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 5
     },
-    "FOCAL_ARRAY_EPS_Y":{
+    "FOCAL_ARRAY_DELTA_Y":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 5
     },
-    "FOCAL_ARRAY_EPS_Z":{
+    "FOCAL_ARRAY_DELTA_Z":{
       "UNITS": "px",
       "MEAN": 0,
       "STDDEV": 5
     },
-    "FOCAL_ARRAY_PHI_X":{
+    "FOCAL_ARRAY_THETA_X":{
       "UNITS": "deg",
       "MEAN": 0,
       "STDDEV": 1
@@ -198,7 +198,7 @@
       "MEAN": 0,
       "STDDEV": 1
     },
-    "FOCAL_ARRAY_PSI_Z":{
+    "FOCAL_ARRAY_THETA_Z":{
       "UNITS": "deg",
       "MEAN": 0,
       "STDDEV": 1
