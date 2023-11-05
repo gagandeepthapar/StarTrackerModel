@@ -186,7 +186,7 @@ Estimate accuracy and precision of a star tracker via error propagation from har
     args = parser.parse_args()
 
     # get logging level from dict stored in CONSTANTS
-    logger.setLevel(CONSTANTS.level_hash.get((args.logger).upper()))
+    logger.setLevel(CONSTANTS.level_hash.get((args.logger).upper()))  # type: ignore
     logger.debug("CMD Arguments: %s", args)
 
     return args
@@ -298,20 +298,17 @@ if __name__ == "__main__":
 
     # Instantiate software
     logger.info("Instantiating Software")
-    sim_sw = create_hardware(cmd_arguments.hardware)
-    # logger.debug(sim_hw)
+    sim_sw = create_software(cmd_arguments.software)
+    logger.debug(sim_sw)
 
     # Instantiate estimation
     logger.info("Instantiating Estimation")
-    sim_est = create_hardware(cmd_arguments.hardware)
+    # sim_est = create_hardware(cmd_arguments.hardware)
     # logger.debug(sim_hw)
 
     # Instantiate environment
     logger.info("Instantiating Environment")
-    sim_env = create_hardware(cmd_arguments.hardware)
+    # sim_env = create_hardware(cmd_arguments.hardware)
     # logger.debug(sim_hw)
 
     # Pass into composer
-    hw = Hardware({"FOCAL_LENGTH": NormalParameter("FOCAL_LENGTH", "mm", 24, 1.5)})
-    composer = Composer(hw, hw, sim_type)
-    df = composer.span(1000)
