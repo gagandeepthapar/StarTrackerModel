@@ -232,6 +232,47 @@ def create_hardware(
     return Hardware(par_dict)
 
 
+def create_software(
+    software_flag: str, default: str = "IDEAL", cfg_file: str = "data/software.json"
+) -> Software:
+    """
+    Instantiate Hardware Class based on user-supplied CLI flag
+
+    Inputs:
+        hardware_flag (str) : CLI flag indicating which dict from hardware.json to use
+        default (str)       : default dict (IDEAL) in case user-supplied does not exist
+        json (str)          : file location of json file to read. Default to data/software.json
+
+    Returns:
+        Hardware            : Hardware class containing startracker hardware parameters
+    """
+    if not isfile(cfg_file):
+        logger.warning(
+            "%s file not found. " "Continuing with data/software.json", cfg_file
+        )
+        cfg_file = "data/software.json"
+
+    with open(cfg_file, encoding="utf-8") as swfp:
+        swdict = json.load(swfp)
+
+    if software_flag.upper() not in swdict.keys():
+        logger.warning(
+            "%s not found in %s config file. " "Continuing with %s software",
+            software_flag,
+            cfg_file,
+            default,
+        )
+        software_flag = default
+
+    # attempt to retrieve JSON dict of user-supplied data
+    swconfig = swdict.get(software_flag.upper())  # top level dict in JSON
+    par_dict: Dict[str, par.Parameter] = {
+        comp_name: par.NormalParameter.from_dict({comp_name: swconfig.get(comp_name)})
+        for comp_name in swconfig
+    }
+    return Software(par_dict)
+
+
 if __name__ == "__main__":
     # parse arguments
     cmd_arguments = parse_arguments()
