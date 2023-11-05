@@ -312,3 +312,24 @@ if __name__ == "__main__":
     # logger.debug(sim_hw)
 
     # Pass into composer
+    start_data_gen = perf_counter()
+    composer = Composer(sim_hw, sim_sw, sim_type)
+    composer.generate_data(cmd_arguments.numruns)
+    end_data_gen = perf_counter()
+    composer.run_model()
+    end_data_compute = perf_counter()
+
+    logger.info("Number of Runs [-]:\t%d", len(composer.model_data.index))
+    logger.info("Data Gen Time [sec]:\t%.5f", end_data_gen - start_data_gen)
+    logger.info("Model Run Time [sec]:\t%.5f", end_data_compute - end_data_gen)
+    logger.info("Total Time [sec]:\t%.5f", end_data_compute - start_data_gen)
+    logger.info(
+        "Performance [asec]:\t%.3f +/- %.3f (1-sigma)",
+        composer.model_data.ANGULAR_ERROR.mean(),
+        composer.model_data.ANGULAR_ERROR.std(),
+    )
+
+    if cmd_arguments.showplot:
+        plotter = Plotter(composer.model_data)
+        plotter.standard()
+        plotter.show()
