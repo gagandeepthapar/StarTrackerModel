@@ -19,6 +19,7 @@ from typing import List, Dict
 from data import CONSTANTS
 from classes.component import Component
 from classes.parameter import NormalParameter, Parameter
+from classes.attitude import Attitude
 
 import numpy as np
 import pandas as pd
@@ -32,58 +33,64 @@ class Hardware(Component):
     Hardware class
     """
 
-    def __init__(self, hardware_dict: Dict[str, Parameter]):
+    def __init__(self, hardware_cfg: Dict[str, Parameter]):
         """
         Initialize Hardware class
         """
-
-        self.focal_length = hardware_dict.get(
-            "FOCAL_LENGTH", NormalParameter("FOCAL_LENGTH", "px", 24, 0)
+        self.focal_length = hardware_cfg.get(
+            "FOCAL_LENGTH", NormalParameter("FOCAL_LENGTH", "px", 3500, 0)
         )
-        self.focal_array = hardware_dict.get(
+        self.focal_array_x = hardware_cfg.get(
             "FOCAL_ARRAY_X", NormalParameter("FOCAL_ARRAY_X", "px", 1024, 0)
         )
-        self.focal_array = hardware_dict.get(
+        self.focal_array_y = hardware_cfg.get(
             "FOCAL_ARRAY_Y", NormalParameter("FOCAL_ARRAY_Y", "px", 1024, 0)
         )
-        self.f_arr_eps_x = hardware_dict.get(
-            "FOCAL_ARRAY_EPS_X", NormalParameter("FOCAL_ARRAY_EPS_X", "px", 0, 0)
+        self.f_arr_eps_x = hardware_cfg.get(
+            "FOCAL_ARRAY_DELTA_X", NormalParameter("FOCAL_ARRAY_DELTA_X", "px", 0, 0)
         )
-        self.f_arr_eps_y = hardware_dict.get(
-            "FOCAL_ARRAY_EPS_Y", NormalParameter("FOCAL_ARRAY_EPS_Y", "px", 0, 0)
-        )
-
-        self.f_arr_eps_z = hardware_dict.get(
-            "FOCAL_ARRAY_EPS_Z", NormalParameter("FOCAL_ARRAY_EPS_Z", "px", 0, 0)
+        self.f_arr_eps_y = hardware_cfg.get(
+            "FOCAL_ARRAY_DELTA_Y", NormalParameter("FOCAL_ARRAY_DELTA_Y", "px", 0, 0)
         )
 
-        self.f_arr_phi_x = hardware_dict.get(
-            "FOCAL_ARRAY_PHI_X", NormalParameter("FOCAL_ARRAY_PHI_X", "deg", 0, 0)
+        self.f_arr_eps_z = hardware_cfg.get(
+            "FOCAL_ARRAY_DELTA_Z", NormalParameter("FOCAL_ARRAY_DELTA_Z", "px", 0, 0)
         )
 
-        self.f_arr_theta_y = hardware_dict.get(
+        self.f_arr_theta_x = hardware_cfg.get(
+            "FOCAL_ARRAY_THETA_X", NormalParameter("FOCAL_ARRAY_THETA_X", "rad", 0, 0)
+        )
+        self.f_arr_theta_x._stddev *= CONSTANTS.DEG2RAD  # type: ignore
+        self.f_arr_theta_x._units = "rad"
+
+        self.f_arr_theta_y = hardware_cfg.get(
             "FOCAL_ARRAY_THETA_Y",
-            NormalParameter("FOCAL_ARRAY_THETA_Y", "deg", 0, 0),
+            NormalParameter("FOCAL_ARRAY_THETA_Y", "rad", 0, 0),
         )
+        self.f_arr_theta_y._stddev *= CONSTANTS.DEG2RAD  # type: ignore
+        self.f_arr_theta_y._units = "rad"
 
-        self.f_arr_psi_z = hardware_dict.get(
-            "FOCAL_ARRAY_PSI_Z", NormalParameter("FOCAL_ARRAY_PSI_Z", "deg", 0, 0)
+        self.f_arr_theta_z = hardware_cfg.get(
+            "FOCAL_ARRAY_THETA_Z", NormalParameter("FOCAL_ARRAY_THETA_Z", "rad", 0, 0)
         )
+        self.f_arr_theta_z._stddev *= CONSTANTS.DEG2RAD  # type:ignore
+        self.f_arr_theta_z._units = "rad"
 
         self.max_vis_mag = hardware_dict.get(
             "MAX_VIS_MAG", NormalParameter("MAX_VIS_MAG", "mv", 10000, 0)
         )
+        self.hw_data: pd.DataFrame = pd.DataFrame()
 
         self.object_list: List[Parameter] = [
             self.focal_length,
-            self.focal_array,
+            self.focal_array_x,
+            self.focal_array_y,
             self.f_arr_eps_x,
             self.f_arr_eps_y,
             self.f_arr_eps_z,
-            self.f_arr_phi_x,
+            self.f_arr_theta_x,
             self.f_arr_theta_y,
-            self.f_arr_psi_z,
-            self.max_vis_mag,
+            self.f_arr_theta_z,
         ]
 
     def modulate(self, num: int) -> pd.DataFrame:
