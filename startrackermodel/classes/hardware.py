@@ -117,8 +117,8 @@ class Hardware(Component):
         Returns:
             pd.DataFrame: DF with FOV column
         """
-        hw_df = super().modulate(num)
-        full_hw_df = Hardware.complete_fov_cols(hw_df)
+        hw_df = super().span(num)
+        full_hw_df = Hardware.precompute_metrics(hw_df)
         return full_hw_df
 
     @staticmethod
