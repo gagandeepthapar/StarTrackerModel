@@ -66,6 +66,7 @@ class Composer:
         ]
 
         self.starframe = StarFrame()
+        self.model_data = pd.DataFrame()
 
     def generate_data(self, num: int) -> pd.DataFrame:
         """
@@ -86,7 +87,7 @@ class Composer:
             case SimType.SENSITIVITY:
                 data_df = self.span(num)
 
-        self.frontend_data = data_df
+        self.model_data = data_df
         return data_df
 
     def modulate(self, num: int) -> pd.DataFrame:
@@ -289,8 +290,3 @@ class Composer:
             * Attitude.quat_compare(row.Q_STAR, row.Q_HASH),
             axis=1,
         )
-
-
-if __name__ == "__main__":
-    comp = Composer(Hardware({}), Hardware({}), SimType.MONTE_CARLO)
-    logger.debug(comp.modulate(10).columns)
