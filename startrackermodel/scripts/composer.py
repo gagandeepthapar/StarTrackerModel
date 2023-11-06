@@ -121,7 +121,6 @@ class Composer:
         # span each parameter based on total number of parameters
         param_num = num // len(total_objects)
         data_frame = pd.DataFrame()
-        logger.warning(param_num)
         for param in total_objects:
             check_name = param.name
             param_df = pd.DataFrame(
@@ -142,7 +141,6 @@ class Composer:
             [self.attitude.modulate(len(data_frame.index)), data_frame],
             axis=1,
         )
-        logger.critical(data_frame)
         return data_frame
 
     def run_model(self):
