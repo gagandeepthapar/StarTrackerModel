@@ -48,6 +48,8 @@ logger = logging.getLogger(__name__)
 
 # Set project level defaults
 __CONST_ROOT = os.path.dirname(os.path.realpath(__file__))
+SAVEDATA = os.path.join(__CONST_ROOT, "pklfiles/")
+MEDIA = os.path.join(__CONST_ROOT, "..", "media/")
 
 # Useful files
 YBSC_PKL = os.path.join(__CONST_ROOT, "YBSC.pkl")
@@ -56,6 +58,12 @@ YBSC_PKL = os.path.join(__CONST_ROOT, "YBSC.pkl")
 RAD2DEG = 180.0 / PI
 DEG2RAD = PI / 180.0
 RAD2ARCSEC = 180.0 / PI * 3600
+BOLTZMANN = 8.61733e-5  # eV/K
+ELECTRON_CHARGE = 1.602e-19  # C
+MU_EARTH = 398600  # km3/s2
+RAD_EARTH = 6378  # km
+C_TO_K = 273.15
+SPEED_OF_LIGHT = 299_792_458
 
 # Log levels
 level_hash = {

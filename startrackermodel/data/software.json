@@ -1,32 +1,95 @@
 {
-    "DESCRIPTION":"Store software information of your camera here. Ensure the following fields exist as a value to the provided key: ERROR_MULTIPLIER. Each field should include a Name, units, mean, stddev. Mean and stddev will default to 0 if missing. Fields will default to ideal if missing. Use the IDEAL/GOOD/BAD/UGLY examples to build up custom classes.",
-    "IDEAL":{
-        "ERROR_MULTIPLIER": {
-        "UNITS": "-",
-        "MEAN": 0,
-        "STDDEV": 0
-      }
+  "DESCRIPTION": "Store software information of your camera here. Ensure the following fields exist as a value to the provided key: ERROR_MULTIPLIER. Each field should include a Name, units, mean, stddev. Mean and stddev will default to 0 if missing. Fields will default to ideal if missing. Use the IDEAL/GOOD/BAD/UGLY examples to build up custom classes.",
+  "SENSITIVITY": {
+    "ERROR_MULTIPLIER": {
+      "TYPE": "U",
+      "UNITS": "-",
+      "LOW": 0,
+      "HIGH": 2
     },
-    "GOOD":{
-        "ERROR_MULTIPLIER": {
-        "UNITS": "-",
-        "MEAN": 1,
-        "STDDEV": 0.1
-      }
+    "IDENTIFICATION_RATE": {
+      "TYPE": "U",
+      "UNITS": "-",
+      "LOW": 0.9,
+      "HIGH": 1.0
+    }
+  },
+  "CONFIG_A": {
+    "ERROR_MULTIPLIER": {
+      "UNITS": "-",
+      "MEAN": 1,
+      "STDDEV": 0.2
     },
-    "BAD":{
-        "ERROR_MULTIPLIER": {
-        "UNITS": "-",
-        "MEAN": 2,
-        "STDDEV": 0.1
-      }
+    "IDENTIFICATION_RATE": {
+      "TYPE": "U",
+      "UNITS": "-",
+      "LOW": 0.9,
+      "HIGH": 1.0
+    }
+  },
+  "CONFIG_B": {
+    "ERROR_MULTIPLIER": {
+      "UNITS": "-",
+      "MEAN": 1,
+      "STDDEV": 0.1
     },
-    "UGLY":{
-        "ERROR_MULTIPLIER": {
-        "UNITS": "-",
-        "MEAN": 5,
-        "STDDEV": 0.1
-      }
+    "IDENTIFICATION_RATE": {
+      "TYPE": "U",
+      "UNITS": "-",
+      "LOW": 0.95,
+      "HIGH": 1.0
+    }
+  },
+  "IDEAL": {
+    "ERROR_MULTIPLIER": {
+      "UNITS": "-",
+      "MEAN": 0,
+      "STDDEV": 0
+    },
+    "IDENTIFICATION_RATE": {
+      "TYPE": "U",
+      "UNITS": "-",
+      "LOW": 1.0,
+      "HIGH": 1.0
+    }
+  },
+  "GOOD": {
+    "ERROR_MULTIPLIER": {
+      "UNITS": "-",
+      "MEAN": 1,
+      "STDDEV": 0.1
+    },
+    "IDENTIFICATION_RATE": {
+      "TYPE": "U",
+      "UNITS": "-",
+      "LOW": 0.9,
+      "HIGH": 1.0
+    }
+  },
+  "BAD": {
+    "ERROR_MULTIPLIER": {
+      "UNITS": "-",
+      "MEAN": 2,
+      "STDDEV": 0.1
+    },
+    "IDENTIFICATION_RATE": {
+      "TYPE": "U",
+      "UNITS": "-",
+      "LOW": 0.8,
+      "HIGH": 1.0
+    }
+  },
+  "UGLY": {
+    "ERROR_MULTIPLIER": {
+      "UNITS": "-",
+      "MEAN": 5,
+      "STDDEV": 0.1
+    },
+    "IDENTIFICATION_RATE": {
+      "TYPE": "U",
+      "UNITS": "-",
+      "LOW": 0.7,
+      "HIGH": 1.0
     }
   }
-  
+}
