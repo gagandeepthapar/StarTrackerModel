@@ -12,17 +12,16 @@ from typing import Dict
 import argparse
 import json
 import numpy as np
-import pandas as pd
-from os.path import isfile
-from time import perf_counter
+from os.path import isfile, join
+from datetime import datetime
 
 from classes import parameter as par
+from classes.component import Component
 from classes.hardware import Hardware
 from classes.software import Software
+from classes.sensor import Sensor
 from classes.environment import Environment
-from classes.estimation import Estimation
-from classes.plotter import Plotter
-from scripts.composer import Composer, SimType
+from classes.enums import SimType, ComponentType
 from data import CONSTANTS
 
 logging.config.dictConfig(CONSTANTS.LOGGING_CONFIG)
@@ -32,6 +31,12 @@ logger = logging.getLogger("driver")
 class UserArguments:
     def __init__(self):
         self.__cmd_arguments = self.parse_arguments()
+        self.default_cfgs = {
+            ComponentType.HARDWARE: "data/hardware.json",
+            ComponentType.SOFTWARE: "data/software.json",
+            ComponentType.SENSOR: "data/sensor.json",
+            ComponentType.ENVIRONMENT: "data/environment.json",
+        }
 
         """ 
         Process Arguments
@@ -41,6 +46,16 @@ class UserArguments:
         self.eps = self.__cmd_arguments.eps
         self.show_plot = self.__cmd_arguments.showplot
         self.save_plot = self.__cmd_arguments.saveplot
+        self.save_data = self.__cmd_arguments.savedata
+
+        self.param_select = self.__cmd_arguments.select
+
+        now = datetime.now()
+        self.pklname = join(
+            CONSTANTS.SAVEDATA, now.strftime("%Y_%m_%d_%H_%M_%S") + ".pkl"
+        )
+        if self.save_data:
+            logger.info(f"Saving data to {self.pklname}")
 
         # set random seed
         logger.info("Setting Seed: %s", str(self.__cmd_arguments.randomseed))
@@ -50,23 +65,33 @@ class UserArguments:
 
         # Instantiate hardware
         logger.info("Instantiating Hardware")
-        self.sim_hw = self.create_hardware(self.__cmd_arguments.hardware)
+        self.sim_hw = self.create_component(
+            self.__cmd_arguments.hardware, ComponentType.HARDWARE, "data/hardware.json"
+        )
         logger.debug(self.sim_hw)
 
         # Instantiate software
         logger.info("Instantiating Software")
-        self.sim_sw = self.create_software(self.__cmd_arguments.software)
+        self.sim_sw = self.create_component(
+            self.__cmd_arguments.software, ComponentType.SOFTWARE, "data/software.json"
+        )
         logger.debug(self.sim_sw)
 
-        # Instantiate estimation
-        logger.info("Instantiating Estimation")
-        # sim_est = create_hardware(__cmd_arguments.hardware)
-        # logger.debug(sim_hw)
+        # Instantiate sensor
+        logger.info("Instantiating Sensor")
+        self.sensor = self.create_component(
+            self.__cmd_arguments.sensor, ComponentType.SENSOR, "data/sensor.json"
+        )
+        logger.debug(self.sensor)
 
         # Instantiate environment
         logger.info("Instantiating Environment")
-        # sim_env = create_hardware(__cmd_arguments.hardware)
-        # logger.debug(sim_hw)
+        self.env = self.create_component(
+            self.__cmd_arguments.environment,
+            ComponentType.ENVIRONMENT,
+            "data/environment.json",
+        )
+        logger.debug(self.env)
 
         return
 
@@ -126,7 +151,7 @@ class UserArguments:
             type=str,
             help="Set logging level: "
             "(D)ebug, (I)nfo, (W)arning, (E)rror, or (C)ritical. Default (D)ebug.",
-            default="Debug",
+            default="Info",
         )
 
         """
@@ -176,6 +201,24 @@ class UserArguments:
             default="M",
         )
 
+        parser.add_argument(
+            "--select",
+            metavar="",
+            type=str,
+            nargs="+",
+            help="Select which parameters to vary for the Sensitivity analysis. Defaults to all.",
+            default=None,
+        )
+
+        parser.add_argument(
+            "--savedata",
+            # metavar="",
+            # type=bool,
+            help="Save all results of accuracy and precision as pkl file. "
+            "Saves in data/ folder in root directory. Defaults to false.",
+            action="store_true",
+        )
+
         """
         Simulation Object Parameters
         """
@@ -198,20 +241,20 @@ class UserArguments:
         )
 
         parser.add_argument(
+            "-sens",
+            "--sensor",
+            metavar="",
+            type=str,
+            help="Select sensor configuration in data/sensor.json. Default to Ideal.",
+            default="IDEAL",
+        )
+
+        parser.add_argument(
             "-env",
             "--environment",
             metavar="",
             type=str,
             help="Select environment configuration in data/environment.json. Default to Ideal.",
-            default="IDEAL",
-        )
-
-        parser.add_argument(
-            "-est",
-            "--estimation",
-            metavar="",
-            type=str,
-            help="Select estimation certainty in data/estimation.json. Default to Ideal.",
             default="IDEAL",
         )
 
@@ -255,91 +298,71 @@ class UserArguments:
         logger.info("Setting Sim Type: %s", str(sim_type))
         return sim_type
 
-    def create_hardware(
+    def create_component(
         self,
-        hardware_flag: str,
+        component_flag: str,
+        component_type: ComponentType,
+        cfg_file: str = None,
         default: str = "IDEAL",
-        cfg_file: str = "data/hardware.json",
-    ) -> Hardware:
+    ) -> Component:
         """
-        Instantiate Hardware Class based on user-supplied CLI flag
+        Instantiate Component Class based on user-supplied CLI flag
 
         Inputs:
-            hardware_flag (str) : CLI flag indicating which dict from hardware.json to use
+            component_flag (str) : CLI flag indicating which dict from cfg_file to use
+            cfg_file       (str) : file location of cfg file if supplied
+            component_type (ComponentType) : indication of which component to create
             default (str)       : default dict (IDEAL) in case user-supplied does not exist
 
         Returns:
-            Hardware            : Hardware class containing startracker hardware parameters
+            Component            : Component class containing startracker parameters
         """
+
+        if cfg_file is None:
+            cfg_file = self.default_cfgs.get(component_type)
+
         if not isfile(cfg_file):
             logger.warning(
-                "%s file not found. " "Continuing with data/hardware.json", cfg_file
+                "%s file not found. " "Continuing with default config file", cfg_file
             )
-            cfg_file = "data/hardware.json"
+            cfg_file = self.default_cfgs.get(component_type)
 
         with open(cfg_file, encoding="utf-8") as hwfp:
-            hwdict = json.load(hwfp)
+            comp_dict = json.load(hwfp)
 
-        if hardware_flag.upper() not in hwdict.keys():
+        if component_flag.upper() not in comp_dict.keys():
             logger.warning(
                 "%s not found in %s config file. " "Continuing with %s hardware",
-                hardware_flag,
+                component_flag,
                 cfg_file,
                 default,
             )
-            hardware_flag = default
+            component_flag = default
 
         # attempt to retrieve JSON dict of user-supplied data
-        hwconfig = hwdict.get(hardware_flag.upper())  # top level dict in JSON
-        par_dict: Dict[str, par.Parameter] = {
-            comp_name: par.NormalParameter.from_dict(
-                {comp_name: hwconfig.get(comp_name)}
-            )
-            for comp_name in hwconfig
-        }
-        return Hardware(par_dict)
+        comp_performance_level = comp_dict.get(component_flag.upper())
+        par_dict: Dict[str, par.Parameter] = {}
 
-    def create_software(
-        self,
-        software_flag: str,
-        default: str = "IDEAL",
-        cfg_file: str = "data/software.json",
-    ) -> Software:
-        """
-        Instantiate Hardware Class based on user-supplied CLI flag
+        # create uniform and normal parameters; default to normal
+        for param_var_name in comp_performance_level:
+            if comp_performance_level.get(param_var_name).get("TYPE", "N").upper() in [
+                "N",
+                "NORMAL",
+            ]:
+                par_dict[param_var_name] = par.NormalParameter.from_dict(
+                    {param_var_name: comp_performance_level.get(param_var_name)}
+                )
+            else:
+                par_dict[param_var_name] = par.UniformParameter.from_dict(
+                    {param_var_name: comp_performance_level.get(param_var_name)}
+                )
 
-        Inputs:
-            hardware_flag (str) : CLI flag indicating which dict from hardware.json to use
-            default (str)       : default dict (IDEAL) in case user-supplied does not exist
-            json (str)          : file location of json file to read. Default to data/software.json
-
-        Returns:
-            Hardware            : Hardware class containing startracker hardware parameters
-        """
-        if not isfile(cfg_file):
-            logger.warning(
-                "%s file not found. " "Continuing with data/software.json", cfg_file
-            )
-            cfg_file = "data/software.json"
-
-        with open(cfg_file, encoding="utf-8") as swfp:
-            swdict = json.load(swfp)
-
-        if software_flag.upper() not in swdict.keys():
-            logger.warning(
-                "%s not found in %s config file. " "Continuing with %s software",
-                software_flag,
-                cfg_file,
-                default,
-            )
-            software_flag = default
-
-        # attempt to retrieve JSON dict of user-supplied data
-        swconfig = swdict.get(software_flag.upper())  # top level dict in JSON
-        par_dict: Dict[str, par.Parameter] = {
-            comp_name: par.NormalParameter.from_dict(
-                {comp_name: swconfig.get(comp_name)}
-            )
-            for comp_name in swconfig
-        }
-        return Software(par_dict)
+        match component_type:
+            case ComponentType.HARDWARE:
+                return Hardware(par_dict)
+            case ComponentType.SOFTWARE:
+                return Software(par_dict)
+            case ComponentType.SENSOR:
+                return Sensor(par_dict)
+            case ComponentType.ENVIRONMENT:
+                return Environment(par_dict)
