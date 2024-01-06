@@ -1,5 +1,5 @@
 # Star Tracker Model
-Updated version of the Star Tracker Measurement Process Model (here)[] to simulate and estimate star tracker accuracy.
+NOTE: Repository is still under development and some features are experimental. Development is actively happening and a released version will be created once ready for use according to the LICENSE.
 
 Estimate accuracy and precision of a star tracker via error propagation from hardware, software, and environmental sources.
 ```
