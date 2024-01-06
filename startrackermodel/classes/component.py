@@ -6,7 +6,6 @@ Parent to:
     - Hardware
     - Software 
     - Environment
-    - Estimation
 Provides common variables, methods for children to inherit
 Includes:
     - Focal Length (mm) + deviations
@@ -27,7 +26,6 @@ import pandas as pd
 
 from data import CONSTANTS
 from classes import parameter as par
-
 
 logging.config.dictConfig(CONSTANTS.LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
@@ -58,7 +56,7 @@ class Component(ABC):
             {param.name: param.modulate(num) for param in self.object_list}
         )
 
-    def span(self, num: int) -> pd.DataFrame:
+    def span(self, num: int, param_select: List[str] = None) -> pd.DataFrame:
         """
         For sensitivity analysis, selectively set parameters to ideal or stochastic values
 
@@ -69,17 +67,22 @@ class Component(ABC):
             pd.DataFrame: DataFrame containing generated data in ascending order
         """
 
-        param_num = num // len(self.object_list)
+        # param_num = num // len(self.object_list)
         data_frame = pd.DataFrame()
+
+        if param_select is None:
+            param_select = [param.name for param in self.object_list]
 
         for param in self.object_list:
             check_name = param.name
+            if check_name not in param_select:
+                continue
             param_df = pd.DataFrame(
                 {
                     mod_param.name: (
-                        mod_param.span(param_num)
+                        mod_param.span(num)
                         if mod_param.name is check_name
-                        else mod_param.ideal(param_num)
+                        else mod_param.ideal(num)
                     )
                     for mod_param in self.object_list
                 }

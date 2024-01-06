@@ -15,6 +15,7 @@ from typing import Dict
 import numpy as np
 
 from data import CONSTANTS
+from classes.enums import DataType
 
 logging.config.dictConfig(CONSTANTS.LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ class Parameter(ABC):
         self.name = name
         self._units = units
         self._sym = "X"
+        self.data_type = DataType.IDEAL
 
     def __repr__(self) -> str:
         return f"{self.name} [{self._units}]: {self._sym}"
@@ -111,6 +113,7 @@ class NormalParameter(Parameter):
         Returns:
             np.ndarray: array of "ideal" values
         """
+        self.data_type = DataType.IDEAL
         return np.ones(num) * self._mean
 
     def modulate(self, num: int = 1) -> np.ndarray:
@@ -124,6 +127,7 @@ class NormalParameter(Parameter):
             np.ndarray: array of values following distribution
 
         """
+        self.data_type = DataType.SCRAMBLED
         return np.random.normal(self._mean, self._stddev, num)
 
     def span(self, num: int = 1) -> np.ndarray:
@@ -136,8 +140,9 @@ class NormalParameter(Parameter):
         Returns:
             np.ndarray  : array of values spanning the range
         """
+        self.data_type = DataType.SPANNED
         return np.linspace(
-            self._mean - 5 * self._stddev, self._mean + 5 * self._stddev, num
+            self._mean - 3 * self._stddev, self._mean + 3 * self._stddev, num
         )
 
     @staticmethod
@@ -158,13 +163,13 @@ class NormalParameter(Parameter):
         key = list(item.keys())[0]
 
         # load in sub-dict to extract values
-        subdict: Dict[str, str | float] = item.get(key)
+        subdict: Dict[str, str | float] = item.get(key)  # type: ignore
         units = subdict.get("UNITS", "")
         mean = subdict.get("MEAN", 0)
         stddev = subdict.get("STDDEV", 0)
 
         # ensure default option for lazy JSON enters
-        par = NormalParameter(key, units, mean, stddev)
+        par = NormalParameter(key, units, mean, stddev)  # type: ignore
 
         return par
 
@@ -207,6 +212,7 @@ class UniformParameter(Parameter):
         Returns:
             np.ndarray: array of "ideal" values
         """
+        self.data_type = DataType.IDEAL
         return 0.5 * (self._low + self._high) * np.ones(num)
 
     def modulate(self, num: int = 1) -> np.ndarray:
@@ -220,6 +226,7 @@ class UniformParameter(Parameter):
             np.ndarray: array of values following distribution
 
         """
+        self.data_type = DataType.SCRAMBLED
         return np.random.uniform(self._low, self._high, num)
 
     def span(self, num: int = 1) -> np.ndarray:
@@ -232,7 +239,36 @@ class UniformParameter(Parameter):
         Returns:
             np.ndarray  : array spanning the range
         """
+        self.data_type = DataType.SPANNED
         return np.linspace(self._low, self._high, num)
+
+    @staticmethod
+    def from_dict(item: Dict[str, Dict[str, str | float]]):
+        """
+        Instantiate a Uniform Parameter from JSON
+
+        Inputs:
+            item (dict): Single dictionary with subdicts including the following information:
+                            - UNITS (str)
+                            - LOW (float). Default to 0
+                            - HIGH (float). Default to 0
+
+        Returns:
+           UniformParameter
+        """
+        assert len(item.keys()) == 1, "More than 1 Parameter passed into JSON"
+        key = list(item.keys())[0]
+
+        # load in sub-dict to extract values
+        subdict: Dict[str, str | float] = item.get(key)  # type: ignore
+        units = subdict.get("UNITS", "")
+        low = subdict.get("LOW", 0)
+        high = subdict.get("HIGH", 0)
+
+        # ensure default option for lazy JSON enters
+        par = UniformParameter(key, units, low, high)  # type: ignore
+
+        return par
 
 
 if __name__ == "__main__":

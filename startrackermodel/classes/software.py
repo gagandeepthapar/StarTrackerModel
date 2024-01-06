@@ -4,7 +4,6 @@ software
 Model the software accuracy of the star tracker algorithm.
 Includes:
     - Centroiding Error
-    - Computation Time (forces IMUs to propagate attitude forward)
 
 startrackermodel
 """
@@ -38,9 +37,13 @@ class Software(Component):
         self.error_multiplier = software_cfg.get(
             "ERROR_MULTIPLIER", NormalParameter("ERROR_MULTIPLIER", "-", 1, 0.1)
         )
+        self.ident_rate = software_cfg.get(
+            "IDENTIFICATION_RATE",
+            UniformParameter("IDENTIFICATION_RATE", "-", 0.9, 1.0),
+        )
         # self.error_direction = UniformParameter("ERROR_DIRECTION", "rad", 0, 2 * np.pi)
 
-        self.object_list = [self.error_multiplier]
+        self.object_list = [self.error_multiplier, self.ident_rate]
         return
 
     def modulate(self, num: int) -> pd.DataFrame:

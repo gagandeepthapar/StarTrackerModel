@@ -35,3 +35,24 @@ class PlotterType(Enum):
 
     SIMPLE = 1
     VERBOSE = 2
+
+
+class ComponentType(Enum):
+    """
+    Enum to differentiate component types
+    """
+
+    HARDWARE = 1
+    SOFTWARE = 2
+    SENSOR = 3
+    ENVIRONMENT = 4
+
+
+class DataType(Enum):
+    """
+    Enum to differentiate between scrambled, spanned, or ideal data
+    """
+
+    SCRAMBLED = 1
+    SPANNED = 2
+    IDEAL = 3

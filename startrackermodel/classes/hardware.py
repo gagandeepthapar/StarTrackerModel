@@ -76,6 +76,13 @@ class Hardware(Component):
         self.f_arr_theta_z._stddev *= CONSTANTS.DEG2RAD  # type:ignore
         self.f_arr_theta_z._units = "rad"
 
+        self.opt_thermo_coeff = hardware_cfg.get(
+            "OPTO_THERMAL_COEFFICIENT",
+            NormalParameter("OPTO_THERMAL_COEFFICIENT", "-", 0, 0),
+        )
+        self.opt_thermo_coeff._mean = self.opt_thermo_coeff._mean * 1e-6
+        self.opt_thermo_coeff._stddev = self.opt_thermo_coeff._stddev * 1e-6
+
         self.hw_data: pd.DataFrame = pd.DataFrame()
 
         self.object_list: List[Parameter] = [
@@ -88,6 +95,7 @@ class Hardware(Component):
             self.f_arr_theta_x,
             self.f_arr_theta_y,
             self.f_arr_theta_z,
+            self.opt_thermo_coeff,
         ]
 
     def modulate(self, num: int) -> pd.DataFrame:
@@ -100,9 +108,7 @@ class Hardware(Component):
         Returns:
             pd.DataFrame: DF with FOV column
         """
-        hw_df = super().modulate(num)
-        full_hw_df = Hardware.precompute_metrics(hw_df)
-        return full_hw_df
+        return super().modulate(num)
 
     def span(self, num: int) -> pd.DataFrame:
         """
@@ -114,54 +120,7 @@ class Hardware(Component):
         Returns:
             pd.DataFrame: DF with FOV column
         """
-        hw_df = super().span(num)
-        full_hw_df = Hardware.precompute_metrics(hw_df)
-        return full_hw_df
-
-    @staticmethod
-    def precompute_metrics(hardware_data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Precompute metrics for hardware errors
-
-        Inputs:
-            hardware_data (pd.DataFrame): dataframe of hardware values
-
-        Returns:
-            pd.DataFrame: DF with fov, r_gamma_pi matrix
-        """
-
-        hardware_data["MAX_FOV"] = Hardware.compute_fov(
-            hardware_data[["FOCAL_ARRAY_X", "FOCAL_ARRAY_Y"]].apply(
-                np.linalg.norm, axis=1
-            ),  # type: ignore
-            hardware_data.FOCAL_LENGTH,  # type: ignore
-        )
-
-        hardware_data["R_GAMMA_PI"] = hardware_data[
-            ["FOCAL_ARRAY_THETA_Z", "FOCAL_ARRAY_THETA_Y", "FOCAL_ARRAY_THETA_X"]
-        ].apply(
-            lambda row: Attitude.rotm_z(CONSTANTS.DEG2RAD * row.FOCAL_ARRAY_THETA_Z)
-            @ Attitude.rotm_y(CONSTANTS.DEG2RAD * row.FOCAL_ARRAY_THETA_Y)
-            @ Attitude.rotm_x(CONSTANTS.DEG2RAD * row.FOCAL_ARRAY_THETA_X),
-            axis=1,
-        )
-
-        hardware_data["R_F_GAMMA_GAMMA"] = hardware_data.apply(
-            lambda row: Hardware.get_r_f_gamma_gamma(
-                row.FOCAL_LENGTH,
-                np.array(
-                    [
-                        row.FOCAL_ARRAY_DELTA_X,
-                        row.FOCAL_ARRAY_DELTA_Y,
-                        row.FOCAL_ARRAY_DELTA_Z,
-                    ]
-                ),
-                row.R_GAMMA_PI,
-            ),
-            axis=1,
-        )
-
-        return hardware_data
+        return super().span(num)
 
     @staticmethod
     def get_r_f_gamma_gamma(

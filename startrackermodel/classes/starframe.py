@@ -14,14 +14,11 @@ import logging
 import logging.config
 from typing import Tuple
 
-from numpy.random import f
-
 from data import CONSTANTS
 from classes.attitude import Attitude
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 logging.config.dictConfig(CONSTANTS.LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
