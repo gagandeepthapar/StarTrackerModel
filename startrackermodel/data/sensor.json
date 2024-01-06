@@ -1,0 +1,45 @@
+{
+  "DESCRIPTION": "Store sensor noise information of your camera here. Ensure the following fields exist as a value to the provided key: PHOTON_INFLUX, INTEGRATION_TIME, APERTURE_DIAMETER, and DARKNOISE_FIGURE. Each field should include a Name, units, mean, stddev. Mean and stddev will default to 0 if missing. Fields will default to ideal if missing. Use the IDEAL/GOOD/BAD/UGLY examples to build up custom classes.",
+  "CONFIG_A": {
+    "MAG_DETECTION_THRESHOLD": {
+      "UNITS": "Mv",
+      "MEAN": 5.5,
+      "STDDEV": 0.2
+    }
+  },
+  "CONFIG_B": {
+    "MAG_DETECTION_THRESHOLD": {
+      "UNITS": "Mv",
+      "MEAN": 5.5,
+      "STDDEV": 0.1
+    }
+  },
+  "IDEAL": {
+    "MAG_DETECTION_THRESHOLD": {
+      "UNITS": "Mv",
+      "MEAN": 1000000,
+      "STDDEV": 0
+    }
+  },
+  "GOOD": {
+    "MAG_DETECTION_THRESHOLD": {
+      "UNITS": "Mv",
+      "MEAN": 5.5,
+      "STDDEV": 0.2
+    }
+  },
+  "BAD": {
+    "MAG_DETECTION_THRESHOLD": {
+      "UNITS": "Mv",
+      "MEAN": 5,
+      "STDDEV": 0.2
+    }
+  },
+  "UGLY": {
+    "MAG_DETECTION_THRESHOLD": {
+      "UNITS": "Mv",
+      "MEAN": 4,
+      "STDDEV": 0.2
+    }
+  }
+}
