@@ -14,6 +14,7 @@ Steps to model:
 startrackermodel
 """
 
+from functools import total_ordering
 import logging
 import logging.config
 from typing import List, Dict
@@ -25,8 +26,8 @@ import matplotlib.pyplot as plt
 from data import CONSTANTS
 from classes.hardware import Hardware
 from classes.software import Software
+from classes.sensor import Sensor
 from classes.environment import Environment
-from classes.estimation import Estimation
 from classes.attitude import Attitude
 from classes.parameter import Parameter
 from classes.component import Component
@@ -46,14 +47,14 @@ class Composer:
         self,
         hardware: Hardware,
         software: Software,
-        # environment: Environment,
-        # estimation: Estimation,
+        sensor: Sensor,
+        environment: Environment,
         sim_type: SimType,
     ):
         self.hardware = hardware
         self.software = software
-        # self.environment = environment
-        # self.estimation = estimation
+        self.sensor = sensor
+        self.environment = environment
         self.attitude = Attitude()
         self.sim_type = sim_type
 
@@ -61,14 +62,14 @@ class Composer:
             self.attitude,
             self.hardware,
             self.software,
-            # self.environment,
-            # self.estimation,
+            self.sensor,
+            self.environment,
         ]
 
         self.starframe = StarFrame()
         self.model_data = pd.DataFrame()
 
-    def generate_data(self, num: int) -> pd.DataFrame:
+    def generate_data(self, num: int, param_select: List[str] = None) -> pd.DataFrame:
         """
         Generate sim-specific data and store in class
 
@@ -85,7 +86,7 @@ class Composer:
                 data_df = self.modulate(num)
 
             case SimType.SENSITIVITY:
-                data_df = self.span(num)
+                data_df = self.span(num, param_select)
 
         self.model_data = data_df
         return data_df
@@ -103,7 +104,7 @@ class Composer:
         data_df = pd.concat([comp.modulate(num) for comp in self.components], axis=1)
         return data_df
 
-    def span(self, num: int) -> pd.DataFrame:
+    def span(self, num: int, param_select: List[str] = None) -> pd.DataFrame:
         """
         Generate Sensitivity Analysis inputs
 
@@ -118,32 +119,103 @@ class Composer:
         for comp in self.components[1:]:
             total_objects.extend(comp.object_list)
 
+        if param_select is None:
+            param_select = [param.name for param in total_objects]
+
         # span each parameter based on total number of parameters
-        param_num = num // len(total_objects)
-        data_frame = pd.DataFrame()
-        for param in total_objects:
-            check_name = param.name
-            param_df = pd.DataFrame(
-                {
-                    mod_param.name: (
-                        mod_param.span(param_num)
-                        if mod_param.name is check_name
-                        else mod_param.ideal(param_num)
-                    )
-                    for mod_param in total_objects
-                }
-            )
-
-            data_frame = pd.concat([data_frame, param_df], axis=0)
-
-        data_frame.reset_index(inplace=True)
+        # data_frame = pd.DataFrame()
+        param_df = pd.DataFrame(
+            {
+                (mod_param.name): (
+                    mod_param.span(num)
+                    if mod_param.name in param_select
+                    else mod_param.ideal(num)
+                )
+                for mod_param in total_objects
+            }
+        )
+        # data_frame.reset_index(inplace=True)
         data_frame = pd.concat(
-            [self.attitude.modulate(len(data_frame.index)), data_frame],
+            [self.attitude.modulate(len(param_df.index)), param_df],
             axis=1,
         )
         return data_frame
 
     def run_model(self):
+        """
+        HARDWARE PERTURBATION SIMULATION
+        """
+        # simulate temperatuer
+        self.model_data["TEMPERATURE"] = self.model_data[["EMISSIVITY"]].apply(
+            lambda row: np.random.uniform(*Environment.temp_trends(row.EMISSIVITY))
+            + CONSTANTS.C_TO_K,
+            axis=1,
+        )
+        # update focal length based on thermal coefficient
+        self.model_data["DT_FOCAL_LENGTH"] = self.model_data[
+            [
+                "FOCAL_LENGTH",
+                "FOCAL_ARRAY_DELTA_Z",
+                "TEMPERATURE",
+                "OPTO_THERMAL_COEFFICIENT",
+            ]
+        ].apply(
+            lambda row: (row.TEMPERATURE - CONSTANTS.C_TO_K)
+            * row.OPTO_THERMAL_COEFFICIENT
+            * (row.FOCAL_LENGTH + row.FOCAL_ARRAY_DELTA_Z),
+            axis=1,
+        )
+
+        # compute hardware params
+        self.model_data["MAX_FOV"] = self.model_data[
+            [
+                "FOCAL_ARRAY_X",
+                "FOCAL_ARRAY_Y",
+                "FOCAL_LENGTH",
+                "DT_FOCAL_LENGTH",
+                "FOCAL_ARRAY_DELTA_Z",
+            ]
+        ].apply(
+            lambda row: Hardware.compute_fov(
+                np.linalg.norm([row.FOCAL_ARRAY_X, row.FOCAL_ARRAY_Y]),
+                row.FOCAL_LENGTH + row.DT_FOCAL_LENGTH + row.FOCAL_ARRAY_DELTA_Z,
+            ),
+            axis=1,
+        )
+
+        self.model_data["R_GAMMA_PI"] = self.model_data[
+            ["FOCAL_ARRAY_THETA_Z", "FOCAL_ARRAY_THETA_Y", "FOCAL_ARRAY_THETA_X"]
+        ].apply(
+            lambda row: Attitude.rotm_z(CONSTANTS.DEG2RAD * row.FOCAL_ARRAY_THETA_Z)
+            @ Attitude.rotm_y(CONSTANTS.DEG2RAD * row.FOCAL_ARRAY_THETA_Y)
+            @ Attitude.rotm_x(CONSTANTS.DEG2RAD * row.FOCAL_ARRAY_THETA_X),
+            axis=1,
+        )
+
+        self.model_data["R_F_GAMMA_GAMMA"] = self.model_data[
+            [
+                "FOCAL_LENGTH",
+                "DT_FOCAL_LENGTH",
+                "FOCAL_ARRAY_DELTA_X",
+                "FOCAL_ARRAY_DELTA_Y",
+                "FOCAL_ARRAY_DELTA_Z",
+                "R_GAMMA_PI",
+            ]
+        ].apply(
+            lambda row: Hardware.get_r_f_gamma_gamma(
+                row.FOCAL_LENGTH,
+                np.array(
+                    [
+                        row.FOCAL_ARRAY_DELTA_X,
+                        row.FOCAL_ARRAY_DELTA_Y,
+                        row.FOCAL_ARRAY_DELTA_Z + row.DT_FOCAL_LENGTH,
+                    ]
+                ),
+                row.R_GAMMA_PI,
+            ),
+            axis=1,
+        )
+
         # store star within fov per scenario
         self.model_data["STAR_V_SET"], self.model_data["STAR_MAG"] = zip(
             *self.model_data[["UVEC_ECI", "MAX_FOV"]].apply(
@@ -226,7 +298,42 @@ class Composer:
             lambda row: len(row)
         )
 
-        # compute (delta_x, delta_y) due to centroiding errors
+        # remove sims with insufficient number of stars
+        self.model_data = self.model_data[self.model_data.N_STARS >= 2]
+
+        """ 
+        IMAGE NOISE SIMULATION
+        """
+        self.model_data["DISCERNIBLE"] = self.model_data[
+            ["STAR_MAG", "MAG_DETECTION_THRESHOLD"]
+        ].apply(
+            lambda row: row.STAR_MAG <= row.MAG_DETECTION_THRESHOLD,
+            axis=1,
+        )
+
+        self.model_data["STAR_V_SET"] = self.model_data[
+            ["STAR_V_SET", "DISCERNIBLE"]
+        ].apply(lambda row: row.STAR_V_SET[row.DISCERNIBLE], axis=1)
+
+        self.model_data["STAR_MAG"] = self.model_data[
+            ["STAR_MAG", "DISCERNIBLE"]
+        ].apply(lambda row: row.STAR_MAG[row.DISCERNIBLE], axis=1)
+
+        self.model_data["STAR_S_HASH_SET"] = self.model_data[
+            ["STAR_S_HASH_SET", "DISCERNIBLE"]
+        ].apply(lambda row: row.STAR_S_HASH_SET[row.DISCERNIBLE], axis=1)
+
+        # store number of stars in each scene
+        self.model_data["N_STARS"] = self.model_data["STAR_MAG"].apply(
+            lambda row: len(row)
+        )
+
+        # remove sims with insufficient number of stars
+        self.model_data = self.model_data[self.model_data.N_STARS >= 2]
+
+        """ 
+        CENTROIDING ERROR SIMULATION
+        """
         self.model_data["ERROR_DIR"] = self.model_data["N_STARS"].apply(
             lambda n: np.random.uniform(0, 2 * np.pi, n)
         )
@@ -265,12 +372,53 @@ class Composer:
             axis=1,
         )
 
+        # determine failed star identifications
+        self.model_data["STAR_IDENT"] = self.model_data["N_STARS"].apply(
+            lambda n: np.array([np.random.uniform(0.0, 1.0, n)])
+        )
+
+        self.model_data["IDENTIFIED"] = self.model_data[
+            ["STAR_IDENT", "IDENTIFICATION_RATE"]
+        ].apply(
+            lambda row: np.array(
+                [star_ident < row.IDENTIFICATION_RATE for star_ident in row.STAR_IDENT]
+            ).flatten(),
+            axis=1,
+        )  # True values are stars that were identified
+
+        self.model_data["STAR_V_SET"] = self.model_data[
+            ["STAR_V_SET", "IDENTIFIED"]
+        ].apply(lambda row: row.STAR_V_SET[row.IDENTIFIED], axis=1)
+
+        self.model_data["STAR_MAG"] = self.model_data[["STAR_MAG", "IDENTIFIED"]].apply(
+            lambda row: row.STAR_MAG[row.IDENTIFIED], axis=1
+        )
+
+        self.model_data["STAR_S_HASH_SET"] = self.model_data[
+            ["STAR_S_HASH_SET", "IDENTIFIED"]
+        ].apply(lambda row: row.STAR_S_HASH_SET[row.IDENTIFIED], axis=1)
+
+        self.model_data["STAR_W_HASH_SET"] = self.model_data[
+            ["STAR_W_HASH_SET", "IDENTIFIED"]
+        ].apply(lambda row: row.STAR_W_HASH_SET[row.IDENTIFIED], axis=1)
+
+        # store number of stars in each scene
+        self.model_data["N_STARS"] = self.model_data["STAR_MAG"].apply(
+            lambda row: len(row)
+        )
+
+        # remove sims with insufficient number of stars
+        self.model_data = self.model_data[self.model_data.N_STARS >= 2]
+
         # drop intermediate columns
         self.model_data = self.model_data.drop(
             ["STAR_W_ROT", "LAMBDA_STAR", "IN_SENSOR", "ERROR_DIR"],
             axis=1,
         )
 
+        """ 
+        AGGREGATE EFFECT COMPARISON
+        """
         # compute quaternion estimate
         self.model_data["Q_HASH"] = self.model_data[
             ["STAR_V_SET", "STAR_W_HASH_SET"]
