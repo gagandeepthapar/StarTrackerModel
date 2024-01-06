@@ -262,6 +262,62 @@ class Attitude(comp.Component):
         )
 
     @staticmethod
+    def SVD_Algorithm(
+        w_set: np.ndarray, v_set: np.ndarray, *, eps: float = 1e-6, max_it: int = 50
+    ) -> np.ndarray:
+        """
+        Implementation of SVD algorithm from Markley
+
+        Args:
+            w_set (np.ndarray): Set of unit vectors in body-frame
+            v_set (np.ndarray): Set of unit vectors in inertial-frame
+            eps (float)       : tolerance to stop Newton-Raphson method
+            max_it (int)      : max number of iterations for N-R Method
+
+        Returns:
+            np.ndarray: quaternion from v_set to w_set to minimize residuals
+        """
+        a_weights = Attitude.unit(np.ones(len(w_set)))
+
+        # compute lambda params
+        B = ((w_set[:, :, None] * v_set[:, None, :]) * a_weights[:, None, None]).sum(0)
+
+        [U, S, V] = np.linalg.svd(B)
+        return Attitude.unit(Attitude.rotm_to_quat(U @ V))
+
+    @staticmethod
+    def FOAM_algorithm(
+        w_set: np.ndarray, v_set: np.ndarray, *, eps: float = 1e-6, max_it: int = 50
+    ) -> np.ndarray:
+        """
+        Implementation of FOAM algorithm from Markley
+
+        !!INCOMPLETE!!
+
+        Args:
+            w_set (np.ndarray): Set of unit vectors in body-frame
+            v_set (np.ndarray): Set of unit vectors in inertial-frame
+            eps (float)       : tolerance to stop Newton-Raphson method
+            max_it (int)      : max number of iterations for N-R Method
+
+        Returns:
+            np.ndarray: quaternion from v_set to w_set to minimize residuals
+        """
+        a_weights = Attitude.unit(np.ones(len(w_set)))
+
+        # compute lambda params
+        B = ((w_set[:, :, None] * v_set[:, None, :]) * a_weights[:, None, None]).sum(0)
+        BT = B.T
+        BT_det = np.linalg.det(B.T)
+        B_T_adj = (np.linalg.inv(BT) * BT_det).T
+
+        A_opt = (
+            (kappa + np.linalg.norm(B)) * B + (opt_lam * B_T_adj) - (B @ B.T @ B)
+        ) / zeta
+
+        return Attitude.unit(Attitude.rotm_to_quat(A_opt))
+
+    @staticmethod
     def quest_algorithm(
         w_set: np.ndarray, v_set: np.ndarray, *, eps: float = 1e-6, max_it: int = 50
     ) -> np.ndarray:
@@ -345,8 +401,9 @@ class Attitude(comp.Component):
             + np.cross(q2[0:3], q1_conj[0:3])
         )
         q2_q1_4 = q2[3] * q1_conj[3] - q1_conj[0:3].T @ q2[0:3]
-        qdiff = np.array([*q2_q1_13, q2_q1_4])
+        qdiff = Attitude.unit(np.array([*q2_q1_13, q2_q1_4]))
 
+        # return 2 * np.arccos(np.abs(qdiff[3]))
         return 2 * np.arctan2(np.sqrt(qdiff[0:3].T @ qdiff[0:3]), qdiff[3])
 
     @staticmethod
